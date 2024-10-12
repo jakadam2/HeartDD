@@ -14,7 +14,7 @@ class ImageDataset(Dataset):
     A custom dataset class for loading and processing images and their corresponding annotations.
 
     This dataset is designed to work with image data organized in a CSV file containing annotations.
-    
+    ------------
     Mandatory fields in the CSV:
     - IMAGE_NAME: The name of the image file.
     - X: The x-coordinate of the top-left corner of the bounding box.
@@ -24,7 +24,7 @@ class ImageDataset(Dataset):
 
     The dataset also supports optional transformations for both images and labels.
 
-    Attributes:
+    Args:
     ----------
     BOX_SIZE : int
         Size of the square bounding box to crop around the center of the target area.
