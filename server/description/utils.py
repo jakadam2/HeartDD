@@ -63,9 +63,8 @@ class ImageDataset(Dataset):
                 class_names: list[str],
                 transform: torchvision.transforms = None,
                 target_transform: torchvision.transforms = None,
-                shuffle: bool = True) -> None:
+                ) -> None:
         self._df = annotations_file[['X','Y','WIDTH','HEIGHT'] + class_names]
-        self._df = self._df(frac=1) if shuffle else self._df
         self.img_dir = img_dir
         self.class_names = class_names
         self.transform = transform
