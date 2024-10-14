@@ -36,7 +36,7 @@ def train_one_epoch(model, train_loader, criterion, optimizer):
             # Przeniesienie danych na GPU, jeśli dostępne
             if torch.cuda.is_available():
                 batch_images = batch_images.to('cuda')
-                batch_targets = {key: value.to('cuda') for key, value in batch_targets.items()}
+                batch_targets = batch_targets.to('cuda')
                 model.to('cuda')
 
             optimizer.zero_grad()
@@ -65,7 +65,7 @@ def train(model, train_loader, criterion, optimizer, num_epochs, run_id):
         run_id: Unique identifier for the training run.
     """
     weights_dir = f'weights/run_{run_id}'
-    os.makedirs(weights_dir, exist_ok=True)  # Tworzenie folderu dla wag, jeśli nie istnieje
+    os.makedirs(weights_dir, exist_ok=True)
 
     for epoch in range(num_epochs):
         print(f"Epoch {epoch + 1}/{num_epochs}")
@@ -84,31 +84,32 @@ if __name__ == '__main__':
     batch_size = 32
     learning_rate = 0.001
 
-    annotations_file = pd.read_csv('./../../datasets/data.csv') 
-    img_dir = './../../datasets/images'
+    annotations_file = pd.read_csv('./../../datasets/final_df.csv') 
+    img_dir = './../../datasets/images/raw'
     class_names = ['AORTO_OSTIAL_STENOSIS', 'BLUNT_STUMP', 'BRIDGING', 'HEAVY_CALCIFICATION', 'SEVERE_TORTUOSITY', 'THROMBUS']
 
     data_transforms = transforms.Compose([
         transforms.RandomHorizontalFlip(),
         transforms.RandomVerticalFlip(),
-        transforms.RandomRotation(30),
+        #transforms.RandomRotation(30),
         transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-        transforms.Resize((64, 64)),
-        transforms.ToTensor(),
+        transforms.Resize((55,55)),
     ])
 
-    dataset = ImageDataset(annotations_file=annotations_file, img_dir=img_dir, class_names=class_names, transform=data_transforms)
-    train_dataset, val_dataset = train_test_split(dataset, test_size=0.2, random_state=42)
+
+    anno_train,anno_test = train_test_split_pandas(annotations_file)
+
+    train_dataset = ImageDataset(anno_train, img_dir=img_dir, class_names=class_names, transform=data_transforms)
+    val_dataset = ImageDataset(anno_test, img_dir=img_dir, class_names=class_names, transform=data_transforms)
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
     hog_layer = HDHOGLayer()
     model = HDModel(hog=hog_layer)
-    criterion = HDLoss(weights={'AORTO_OSTIAL_STENOSIS': 1.5,
-                                'BLUNT_STUMP': 1.0,
-                                'BRIDGING': 2.0})
+    criterion = HDLoss()
+    
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
-    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     train(model, train_loader, criterion, optimizer, num_epochs, run_id=run_id)

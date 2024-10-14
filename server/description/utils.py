@@ -4,6 +4,8 @@ from torch.utils.data import Dataset
 import torchvision
 from torchvision import transforms
 
+import numpy as np
+
 import os
 import pandas as pd
 from PIL import Image
@@ -64,7 +66,7 @@ class ImageDataset(Dataset):
                 transform: torchvision.transforms = None,
                 target_transform: torchvision.transforms = None,
                 ) -> None:
-        self._df = annotations_file[['X','Y','WIDTH','HEIGHT'] + class_names]
+        self._df = annotations_file[['X','Y','WIDTH','HEIGHT','IMAGE_NAME'] + class_names]
         self.img_dir = img_dir
         self.class_names = class_names
         self.transform = transform
@@ -77,22 +79,37 @@ class ImageDataset(Dataset):
     def __getitem__(self, idx):
         img_path = os.path.join(self.img_dir, self._df['IMAGE_NAME'].iloc[idx])
         image = Image.open(img_path)
-        image = self.pll(image).to(torch.float32)
+        image = self.pll(image).to(torch.float32).squeeze()
 
         x,y = self._df['X'].iloc[idx],self._df['Y'].iloc[idx]
         w =self._df['WIDTH'].iloc[idx] 
         h = self._df['HEIGHT'].iloc[idx]
         cx = x + 0.5*w
         cy = y + 0.5*h
-        cropped = image[int(cx - 0.5*ImageDataset.BOX_SIZE):int(cx + 0.5*ImageDataset.BOX_SIZE), int(cy - 0.5*ImageDataset.BOX_SIZE):int(cy + 0.5*ImageDataset.BOX_SIZE)]
 
-        labels = torch.from_numpy(self._df[self.class_names].values,dtype=torch.float32)
+        cropped = image[int(cx - 0.5*ImageDataset.BOX_SIZE):int(cx + 0.5*ImageDataset.BOX_SIZE), int(cy - 0.5*ImageDataset.BOX_SIZE):int(cy + 0.5*ImageDataset.BOX_SIZE)].unsqueeze(0)
+        labels = torch.from_numpy(self._df[self.class_names].iloc[idx].values).to(torch.float32)
 
         cropped = self.transform(cropped) if self.transform is not None else cropped
         labels = self.target_transform(labels) if self.target_transform is not None else labels
         
         return cropped, labels
 
+def train_test_split_pandas(df, test_size=0.2, random_state=None):
 
+    if random_state is not None:
+        np.random.seed(random_state)
+
+    shuffled_indices = np.random.permutation(len(df))
+    
+    test_set_size = int(len(df) * test_size)
+    
+    test_indices = shuffled_indices[:test_set_size]
+    train_indices = shuffled_indices[test_set_size:]
+    
+    train_df = df.iloc[train_indices]
+    test_df = df.iloc[test_indices]
+    
+    return train_df, test_df
 
 

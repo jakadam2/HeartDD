@@ -37,9 +37,47 @@ class HDHOGLayer(nn.Module):
         self.cells_per_block = cells_per_block
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return feature.hog(x, self.orientations, self.pixels_per_cell,
-                           self.cells_per_block, transform_sqrt=True, block_norm="L2",
-                           visualize=True, feature_vector=True)
+        """
+        x : torch.Tensor
+            A batch of images as a 4D tensor with shape (batch_size, channels, height, width).
+        
+        Returns:
+        -------
+        torch.Tensor
+            A tensor of HOG features for each image in the batch.
+        """
+        # Sprawdzenie czy tensor ma 4 wymiary: (batch_size, channels, height, width)
+        assert len(x.shape) == 4, "Input tensor must be 4-dimensional (batch_size, channels, height, width)"
+        
+        # Upewnij się, że obrazy mają 1 kanał (dla HOG, zwykle grayscale)
+        if x.shape[1] != 1:
+            raise ValueError("HOG expects grayscale images with 1 channel")
+
+        # Lista do przechowywania cech HOG dla każdego obrazu
+        hog_features = []
+
+        # Iteracja przez batch
+        for i in range(x.shape[0]):
+            # Weź obraz i usuń kanał (1, height, width) -> (height, width)
+            img = x[i].squeeze(0).cpu().numpy()  # Przekształć do Numpy
+            
+            # Oblicz cechy HOG dla tego obrazu
+            hog_feature = feature.hog(
+                img, 
+                orientations=self.orientations, 
+                pixels_per_cell=self.pixels_per_cell,
+                cells_per_block=self.cells_per_block, 
+                transform_sqrt=True, 
+                block_norm="L2",
+                visualize=False,  # visualize=False, bo zwracamy tylko wektor cech
+                feature_vector=True
+            )
+            
+            # Dodaj cechy do listy
+            hog_features.append(hog_feature)
+        
+        # Przekształć listę wyników w tensor PyTorch (batch_size, num_features)
+        return torch.tensor(hog_features, dtype=torch.float32).to('cuda')
 
 
 class HDClassifier(nn.Module):
@@ -120,14 +158,12 @@ class HDModel(nn.Module):
         HEAVY_CALCIFICATION = self.HEAVY_CALCIFICATION_classifier(hog_features)
         SEVERE_TORTUOSITY = self.SEVERE_TORTUOSITY_classifier(hog_features)
         THROMBUS = self.THROMBUS_classifier(hog_features)
-        return {
-            'AORTO_OSTIAL_STENOSIS': AORTO_OSTIAL_STENOSIS,
-            'BLUNT_STUMP': BLUNT_STUMP,
-            'BRIDGING': BRIDGING,
-            'HEAVY_CALCIFICATION': HEAVY_CALCIFICATION,
-            'SEVERE_TORTUOSITY': SEVERE_TORTUOSITY,
-            'THROMBUS': THROMBUS
-        }
+        return torch.hstack((AORTO_OSTIAL_STENOSIS
+                             ,BLUNT_STUMP
+                             ,BRIDGING
+                             ,HEAVY_CALCIFICATION
+                             ,SEVERE_TORTUOSITY
+                             ,THROMBUS))
 
 
 class HDLoss(nn.Module):
@@ -156,23 +192,19 @@ class HDLoss(nn.Module):
         ...                                   'BRIDGING': 2.0})
         >>> loss = loss_function(outputs, targets)
     """
-    def __init__(self, weights=None):
-        super(HDLoss, self).__init__()
-        self.loss_fn = nn.BCELoss(reduction='none')
-        self.weights = weights if weights is not None else defaultdict(lambda :1)
+    steps = [1,1,1,1,1,1]
 
-    def forward(self, outputs: dict, targets: dict) -> torch.Tensor:
-        total_loss = 0.0
+    def __init__(self) -> None:
+        super(HDLoss,self).__init__()
+        self._loss = nn.BCEWithLogitsLoss() 
 
-        for key in outputs.keys():
-            output = outputs[key]
-            target = targets[key]
+    def forward(self,predicts,labels):
+        cum_loss = 0
 
-            # Obliczanie straty dla danej cechy
-            loss = self.loss_fn(output, target)
+        j = 0
+        labels = labels.squeeze(1)
 
-            # Waga dla danej cechy (domyślnie 1.0, jeśli nie zdefiniowano)
-            weight = self.weights[key]
-            total_loss += weight * loss.mean()  # Uśredniamy stratę dla danego klucza
-
-        return total_loss
+        for i in range(labels.shape[1]):
+            cum_loss += self._loss(predicts[:,j:j + HDLoss.steps[i]],labels[:,i].unsqueeze(1))
+            j += HDLoss.steps[i]
+        return cum_loss
