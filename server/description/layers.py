@@ -196,7 +196,8 @@ class HDLoss(nn.Module):
 
     def __init__(self) -> None:
         super(HDLoss,self).__init__()
-        self._loss = nn.BCEWithLogitsLoss() 
+        pos_weight = torch.tensor([8.0]).to('cuda')
+        self._loss = nn.BCEWithLogitsLoss(pos_weight = pos_weight) 
 
     def forward(self,predicts,labels):
         cum_loss = 0
