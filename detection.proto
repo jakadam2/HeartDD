@@ -22,7 +22,7 @@ message DetectionResponse{
 
 message DescriptionResponse{
     ResponseStatus status = 1;
-    optional repeated Confidences confidence_list = 3;
+    optional repeated Confidence confidence_list = 3;
 }
 
 message Coordinates{
@@ -35,7 +35,7 @@ message Coordinates{
     float y2 = 4;
 }
 
-message Confidences{
+message Confidence{
     string name = 1;
     float confidence = 2;
 }
