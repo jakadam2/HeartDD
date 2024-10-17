@@ -21,7 +21,7 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
 
 
     def GetBoundingBoxes(self, request_iterator, context):
-        print("request inboud")
+        print("Request inboud")
         image_data = io.BytesIO()  # To accumulate image bytes
         width = None
         height = None
@@ -49,20 +49,15 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
 
 
             # Create and return the response
-            print("Image loaded")
             coordinates_list = []
             status = comms.ResponseStatus(success = comms.Status.SUCCESS)
             response = comms.DetectionResponse(status =status, coordinates_list = coordinates_list)
-            print("response Success")
-
 
             #find bounding boxes, this is a placeholder
             bounding_boxes = self.detect_bounding_boxes(image)
-            print("Found bounding boxes")
             for box in bounding_boxes:
                 coordinates = comms.Coordinates(x1=box['x1'], y1=box['y1'], x2=box['x2'], y2=box['y2'])
                 response.coordinates_list.append(coordinates)
-            print("finished try block")
             ###################
 
         except Exception as ex:
