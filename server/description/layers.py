@@ -46,22 +46,16 @@ class HDHOGLayer(nn.Module):
         torch.Tensor
             A tensor of HOG features for each image in the batch.
         """
-        # Sprawdzenie czy tensor ma 4 wymiary: (batch_size, channels, height, width)
         assert len(x.shape) == 4, "Input tensor must be 4-dimensional (batch_size, channels, height, width)"
         
-        # Upewnij się, że obrazy mają 1 kanał (dla HOG, zwykle grayscale)
         if x.shape[1] != 1:
             raise ValueError("HOG expects grayscale images with 1 channel")
 
-        # Lista do przechowywania cech HOG dla każdego obrazu
         hog_features = []
 
-        # Iteracja przez batch
         for i in range(x.shape[0]):
-            # Weź obraz i usuń kanał (1, height, width) -> (height, width)
-            img = x[i].squeeze(0).cpu().numpy()  # Przekształć do Numpy
+            img = x[i].squeeze(0).cpu().numpy()
             
-            # Oblicz cechy HOG dla tego obrazu
             hog_feature = feature.hog(
                 img, 
                 orientations=self.orientations, 
@@ -69,14 +63,12 @@ class HDHOGLayer(nn.Module):
                 cells_per_block=self.cells_per_block, 
                 transform_sqrt=True, 
                 block_norm="L2",
-                visualize=False,  # visualize=False, bo zwracamy tylko wektor cech
+                visualize=False,
                 feature_vector=True
             )
             
-            # Dodaj cechy do listy
             hog_features.append(hog_feature)
         
-        # Przekształć listę wyników w tensor PyTorch (batch_size, num_features)
         return torch.tensor(hog_features, dtype=torch.float32).to('cuda')
 
 
