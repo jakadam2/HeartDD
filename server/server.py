@@ -25,11 +25,8 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
         image_data = io.BytesIO()  # To accumulate image bytes
         width = None
         height = None
-        file_type = None
 
         for request in request_iterator:
-            if not file_type:
-                file_type = request.file_type
             if not width:
                 width = request.width
             if not height:
