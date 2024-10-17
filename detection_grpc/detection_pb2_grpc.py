@@ -36,12 +36,12 @@ class DetectionAndDescriptionStub(object):
         """
         self.GetBoundingBoxes = channel.stream_unary(
                 '/DetectionAndDescription.DetectionAndDescription/GetBoundingBoxes',
-                request_serializer=detection__grpc_dot_detection__pb2.ImageRequest.SerializeToString,
+                request_serializer=detection__grpc_dot_detection__pb2.DetectionRequest.SerializeToString,
                 response_deserializer=detection__grpc_dot_detection__pb2.DetectionResponse.FromString,
                 _registered_method=True)
         self.GetDescription = channel.stream_unary(
                 '/DetectionAndDescription.DetectionAndDescription/GetDescription',
-                request_serializer=detection__grpc_dot_detection__pb2.ImageRequest.SerializeToString,
+                request_serializer=detection__grpc_dot_detection__pb2.DescriptionRequest.SerializeToString,
                 response_deserializer=detection__grpc_dot_detection__pb2.DescriptionResponse.FromString,
                 _registered_method=True)
 
@@ -66,12 +66,12 @@ def add_DetectionAndDescriptionServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'GetBoundingBoxes': grpc.stream_unary_rpc_method_handler(
                     servicer.GetBoundingBoxes,
-                    request_deserializer=detection__grpc_dot_detection__pb2.ImageRequest.FromString,
+                    request_deserializer=detection__grpc_dot_detection__pb2.DetectionRequest.FromString,
                     response_serializer=detection__grpc_dot_detection__pb2.DetectionResponse.SerializeToString,
             ),
             'GetDescription': grpc.stream_unary_rpc_method_handler(
                     servicer.GetDescription,
-                    request_deserializer=detection__grpc_dot_detection__pb2.ImageRequest.FromString,
+                    request_deserializer=detection__grpc_dot_detection__pb2.DescriptionRequest.FromString,
                     response_serializer=detection__grpc_dot_detection__pb2.DescriptionResponse.SerializeToString,
             ),
     }
@@ -100,7 +100,7 @@ class DetectionAndDescription(object):
             request_iterator,
             target,
             '/DetectionAndDescription.DetectionAndDescription/GetBoundingBoxes',
-            detection__grpc_dot_detection__pb2.ImageRequest.SerializeToString,
+            detection__grpc_dot_detection__pb2.DetectionRequest.SerializeToString,
             detection__grpc_dot_detection__pb2.DetectionResponse.FromString,
             options,
             channel_credentials,
@@ -127,7 +127,7 @@ class DetectionAndDescription(object):
             request_iterator,
             target,
             '/DetectionAndDescription.DetectionAndDescription/GetDescription',
-            detection__grpc_dot_detection__pb2.ImageRequest.SerializeToString,
+            detection__grpc_dot_detection__pb2.DescriptionRequest.SerializeToString,
             detection__grpc_dot_detection__pb2.DescriptionResponse.FromString,
             options,
             channel_credentials,
