@@ -110,13 +110,15 @@ def generate_image_request(dicom_file):
 
 
 def generate_desc_request(dicom, bbox):
-    pixel_data = dicom_file.pixel_array.tobytes()
-    width = dicom_file.Columns
-    height = dicom_file.Rows
+    pixel_data = dicom.pixel_array.tobytes()
+    width = dicom.Columns
+    height = dicom.Rows
     chunk_size = 1024 * 1024
+    coordinates = comms.Coordinates(x1=bbox[0], y1=bbox[1], x2=bbox[2], y2=bbox[3])
     for i in range(0, len(pixel_data), chunk_size):
         chunk = pixel_data[i: i+chunk_size]
-        yield comms.DetectionRequest(
+        yield comms.DescriptionRequest(
+            coords = coordinates,
             width=width,
             height=height,
             image=chunk
@@ -164,13 +166,9 @@ def run_client():
     channel = grpc.insecure_channel('localhost:50051')
     stub = comms_grpc.DetectionAndDescriptionStub(channel)
 
-    # Load the DICOM file
     file = load_dicom()
     if file is None:
         return  # Exit if no file is loaded
-
-    # Prepare the request
-   
 
     # Initialize Tkinter window
     window = tk.Tk()
@@ -183,7 +181,6 @@ def run_client():
 
     # Dictionary to hold the reference to the image (to prevent garbage collection)
     image_container = {}
-
     # Display the image immediately
     display_image(file, WIDTH, HEIGHT, canvas, image_container)
 
@@ -212,7 +209,7 @@ def server_communication_handler(stub, canvas, file):
         else:
             print("Error code: 500") 
     except grpc.RpcError as er:
-        print(f"gRPC erorr: {e}")
+        print(f"gRPC erorr: {er}")
 
     if bounding_boxes is None:
         print("Something went wrong line: 204")
@@ -220,13 +217,14 @@ def server_communication_handler(stub, canvas, file):
 
     for bbox in bounding_boxes:
         description_request = generate_desc_request(file, bbox)     
-
-#def print_confidences(stub, request, canvas, file, width, height):
-#    try:
-#        response = stub.GetDescription(request)
-#
-#        if response.status.success == comms.Status.SUCCESS:
-#            print_confidence()
+        try: 
+            response = stub.GetDescription(description_request)
+            if response.status.success == comms.Status.SUCCESS:
+                print(f"Bounding box {bbox[0]}{bbox[1]}{bbox[2]}{bbox[3]}")
+                for conf in response.confidence_list:
+                    print(f"{conf.name}:{conf.confidence}")
+        except grpc.RpcError as er:
+            print(f"gRPC error: {er}")
 
 
 
