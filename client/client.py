@@ -14,8 +14,30 @@ from PIL import Image, ImageTk
 import matplotlib.pyplot as plt
 from pydicom.data import get_testdata_file
 import numpy as np
+import threading
+import time
 
 WIDTH, HEIGHT = 400, 400
+
+def process_bounding_boxes(response, scaling_ratio):
+    # Initialize an empty list to store the rescaled bounding boxes
+    bounding_boxes = []
+
+    if response.status.success == comms.Status.SUCCESS:
+        print("Bounding boxes detected:")
+        for coordinates in response.coordinates_list:
+            # Rescale the coordinates using the scaling_ratio
+            x1 = coordinates.x1 * scaling_ratio
+            y1 = coordinates.y1 * scaling_ratio
+            x2 = coordinates.x2 * scaling_ratio
+            y2 = coordinates.y2 * scaling_ratio
+
+            print(f"Coordinates: x1={coordinates.x1}, y1={coordinates.y1}, "
+                  f"x2={coordinates.x2}, y2={coordinates.y2}")
+            # Append the rescaled bounding box to the list
+            bounding_boxes.append([x1, y1, x2, y2])
+
+    return bounding_boxes
 
 
 def display_image_with_bounding_boxes(dicom, bounding_boxes, width: int, height: int):
@@ -87,48 +109,124 @@ def generate_image_request(dicom_file):
         )
 
 
+def generate_desc_request(dicom, bbox):
+    pixel_data = dicom_file.pixel_array.tobytes()
+    width = dicom_file.Columns
+    height = dicom_file.Rows
+    chunk_size = 1024 * 1024
+    for i in range(0, len(pixel_data), chunk_size):
+        chunk = pixel_data[i: i+chunk_size]
+        yield comms.DetectionRequest(
+            width=width,
+            height=height,
+            image=chunk
+        )
+
+
+def add_bounding_boxes_to_canvas(canvas, bounding_boxes):
+    """Adds bounding boxes to the already displayed image."""
+    for box in bounding_boxes:
+        x1, y1, x2, y2 = box[0], box[1], box[2], box[3]
+        canvas.create_rectangle(x1, y1, x2, y2, outline="red", width=2)
+
+
+def display_image(dicom, width, height, canvas, image_container):
+    """Displays the image immediately."""
+    pixel_array = dicom.pixel_array
+    normalized_pixel_array = (pixel_array - np.min(pixel_array)) / (np.max(pixel_array) - np.min(pixel_array)) * 255
+    normalized_pixel_array = normalized_pixel_array.astype(np.uint8)
+
+    # Convert the numpy array to a PIL image
+    if normalized_pixel_array.ndim == 2:  # Grayscale image
+        image = Image.fromarray(normalized_pixel_array)
+    else:
+        image = Image.fromarray(normalized_pixel_array)
+
+    # Resize image to fit window
+    image = image.resize((width, height))
+
+    # Convert to ImageTk for Tkinter
+    image_tk = ImageTk.PhotoImage(image)
+
+    # Clear existing image, if any
+    canvas.delete("all")
+
+    # Display the image on the canvas
+    canvas.create_image(0, 0, anchor=tk.NW, image=image_tk)
+    
+    # Save the reference to avoid garbage collection
+    image_container["image"] = image_tk
+
+
 def run_client():
 
+     # Set up gRPC connection
     channel = grpc.insecure_channel('localhost:50051')
     stub = comms_grpc.DetectionAndDescriptionStub(channel)
+
+    # Load the DICOM file
     file = load_dicom()
-    request = generate_image_request(file)
-    
-    # Stream the DICOM file's pixel data and receive the response
-    response = stub.GetBoundingBoxes(request)
-    # Handle the response
+    if file is None:
+        return  # Exit if no file is loaded
+
+    # Prepare the request
+   
+
+    # Initialize Tkinter window
+    window = tk.Tk()
+    window.title("DICOM Image Viewer with Bounding Boxes")
+
+    # Set window size and create a canvas
+    WIDTH, HEIGHT = 500, 500  # Adjust this based on your image size
+    canvas = tk.Canvas(window, width=WIDTH, height=HEIGHT)
+    canvas.pack()
+
+    # Dictionary to hold the reference to the image (to prevent garbage collection)
+    image_container = {}
+
+    # Display the image immediately
+    display_image(file, WIDTH, HEIGHT, canvas, image_container)
+
+    # Start a separate thread to send the gRPC request and draw bounding boxes
+    threading.Thread(
+        target=server_communication_handler,
+        args=(stub, canvas, file),
+        daemon=True
+    ).start()
+
+    # Run the Tkinter main loop
+    window.mainloop()
+
+def server_communication_handler(stub, canvas, file):
+    detection_request = generate_image_request(file)
     bounding_boxes = None
-    if response.status.success == comms.Status.SUCCESS:
-        print("Bounding boxes detected:")
-        bounding_boxes = process_bounding_boxes(response, (WIDTH/file.Columns))
-    else:
-        print("Error: Image processing failed.")
+    try:
+        response = stub.GetBoundingBoxes(detection_request)
+        if response.status.success == comms.Status.SUCCESS:
+            """Thread function to send the gRPC request and draw bounding boxes on the image."""
+            # Stream the DICOM file's pixel data and receive the response
+            # Scale the bounding boxes using the scaling ratio
+            scaling_ratio = WIDTH / file.Columns
+            bounding_boxes = process_bounding_boxes(response, scaling_ratio)
+            add_bounding_boxes_to_canvas(canvas, bounding_boxes)
+        else:
+            print("Error code: 500") 
+    except grpc.RpcError as er:
+        print(f"gRPC erorr: {e}")
+
     if bounding_boxes is None:
-        print("Error: Drawing bounding boexs failed")
+        print("Something went wrong line: 204")
+        return
 
+    for bbox in bounding_boxes:
+        description_request = generate_desc_request(file, bbox)     
 
-    display_image_with_bounding_boxes(file, bounding_boxes, WIDTH, HEIGHT)
-
-
-def process_bounding_boxes(response, scaling_ratio):
-    # Initialize an empty list to store the rescaled bounding boxes
-    bounding_boxes = []
-
-    if response.status.success == comms.Status.SUCCESS:
-        print("Bounding boxes detected:")
-        for coordinates in response.coordinates_list:
-            # Rescale the coordinates using the scaling_ratio
-            x1 = coordinates.x1 * scaling_ratio
-            y1 = coordinates.y1 * scaling_ratio
-            x2 = coordinates.x2 * scaling_ratio
-            y2 = coordinates.y2 * scaling_ratio
-
-            print(f"Coordinates: x1={coordinates.x1}, y1={coordinates.y1}, "
-                  f"x2={coordinates.x2}, y2={coordinates.y2}")
-            # Append the rescaled bounding box to the list
-            bounding_boxes.append([x1, y1, x2, y2])
-
-    return bounding_boxes
+#def print_confidences(stub, request, canvas, file, width, height):
+#    try:
+#        response = stub.GetDescription(request)
+#
+#        if response.status.success == comms.Status.SUCCESS:
+#            print_confidence()
 
 
 

@@ -21,7 +21,7 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
 
 
     def GetBoundingBoxes(self, request_iterator, context):
-        print("Request inboud")
+        print("Detection request inboud")
         image_data = io.BytesIO()  # To accumulate image bytes
         width = None
         height = None
@@ -78,7 +78,80 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
         return [{'x1': 10, 'y1': 20, 'x2': 50, 'y2': 60},
                 {'x1': 100, 'y1': 120, 'x2': 30, 'y2': 40}]
 
+    def GetDescription(self, request_iterator, context):
+        print("Detection request inboud")
+        image_data = io.BytesIO()  # To accumulate image bytes
+        width = None
+        height = None
+        coordinates = None
 
+        for request in request_iterator:
+            if not coordinates:
+                coordinates = [
+                    coordinates.x1,
+                    coordinates.y1,
+                    coordinates.x2,
+                    coordinates.y2
+                ]
+            if not width:
+                width = request.width
+            if not height:
+                height = request.height
+            
+            # Write the incoming image bytes to the BytesIO object
+            image_data.write(request.image)
+        # At this point, the whole image is received in 'image_data'
+        image_data.seek(0)  # Reset the buffer's position to the start
+       
+        response = None
+        try:
+            #Load image data into actual image
+            pixel_array = np.frombuffer(image_data.getvalue(), dtype=np.uint16)
+            pixel_array = pixel_array.reshape((height, width))  # Reshape to 2D array
+            image = Image.fromarray(pixel_array)
+
+
+            # Create and return the response
+            condfidence_list = []
+            status = comms.ResponseStatus(success = comms.Status.SUCCESS)
+            response = comms.DescriptionResponse(status =status, confidence_list = confidence_list)
+            #find bounding boxes, this is a placeholder
+            confidences = self.describe_bbox(image)
+            for description in condifences:
+                confidence = comms.Confidence(name=description["name"], confidence=description["confidence"])
+                response.confidence_list.append(confidence)
+            ###################
+
+        except Exception as ex:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            return comms.DetectionResponse(
+                comms.ResponseStatus(
+                    success = comms.Status.FAILURE,
+                    err_message = "Something went wrong"
+                ),
+                coordinates_list = [])
+      
+        return response
+
+    def describe_box(self, image):
+        # Simulate detection of some objects in the image with random confidence scores
+        object_names = ['Person', 'Car', 'Tree', 'Dog', 'Cat']  # Example object classes
+        confidences = []
+
+        # Randomly generate some detections (between 1 and 5)
+        num_detections = random.randint(1, 5)
+
+        for _ in range(num_detections):
+            name = random.choice(object_names)  # Randomly select an object
+            confidence = round(random.uniform(0.5, 1.0), 2)  # Random confidence between 0.5 and 1.0
+            confidences.append({
+                "name": name,
+                "confidence": confidence
+            })
+
+        return confidences
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
