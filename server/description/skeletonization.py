@@ -37,29 +37,31 @@ class HDBifurcationPDF:
                 self.skeletonized_mask[x_max][y], self.skeletonized_mask[x_max][y_min], self.skeletonized_mask[x][y_min], self.skeletonized_mask[x_min][y_min] ]
 
     def _is_bifurcation(self, x, y):
-        P1,P2,P3,P4,P5,P6,P7,P8 = self._neighbours_8(x, y)
-        if (P8 * P2 * P6 == 1):
-            return True
-        elif (P8 * P6 * P4 == 1):
-            return True
-        elif (P6 * P4 * P2 == 1):
-            return True
-        elif (P4 * P2 * P8 == 1):
-            return True
-        elif (P8 * P2 * P5 == 1):
-            return True
-        elif (P8 * P6 * P3 == 1):
-            return True
-        elif (P6 * P4 * P1 == 1):
-            return True
-        elif (P4 * P2 * P7 == 1):
-            return True
-        elif (P6 * P1 * P3 ==1):
-            return True
-        elif (P4 * P7 * P1 == 1):
-            return True
-        elif (P2 * P5 * P7 == 1):
-            return True
-        elif (P8 * P5 * P3 == 1):
-            return True
+        kernels = [
+            [[1,0,1],
+             [0,1,0],
+             [0,1,0]],
+
+            [[0,1,0],
+             [0,1,0],
+             [1,0,1]],
+
+            [[0,0,1],
+             [1,1,0],
+             [0,0,1]],
+
+            [[1,0,0],
+             [0,1,1],
+             [1,0,0]],
+
+            [[1,0,1],
+             [0,1,0],
+             [0,0,1]],
+
+            []
+
+
+
+
+        ]
         return False
