@@ -11,13 +11,12 @@ import pydicom as dicom
 import tkinter as tk
 from tkinter.filedialog import askopenfilename
 from PIL import Image, ImageTk
-import matplotlib.pyplot as plt
 from pydicom.data import get_testdata_file
 import numpy as np
 import threading
 import time
 
-WIDTH, HEIGHT = 400, 400
+WIDTH, HEIGHT = 800, 800
 
 def process_bounding_boxes(response, scaling_ratio):
     # Initialize an empty list to store the rescaled bounding boxes
@@ -77,9 +76,13 @@ def display_image_with_bounding_boxes(dicom, bounding_boxes, width: int, height:
 
 
 def load_dicom():
-    #filename = askopenfilename()
-    filename = get_testdata_file("CT_small.dcm")
-    extension = filename.rsplit(".", 1)[1] 
+    filename = askopenfilename()
+    #filename = get_testdata_file("CT_small.dcm")
+    filename_split = filename.rsplit(".", 1)
+    if (len(filename_split) < 2):
+        print("Incorrect file")
+        return None
+    extension = filename_split[1]
     file = None
     match extension:
         case "dcm":
@@ -92,6 +95,7 @@ def load_dicom():
     if file == None:
         print("OwO, something went howwibly bad. Sowwwwy T~T")
         return None 
+    print(f"{file.Columns}x{file.Rows}")
     return file
 
 
@@ -175,7 +179,6 @@ def run_client():
     window.title("DICOM Image Viewer with Bounding Boxes")
 
     # Set window size and create a canvas
-    WIDTH, HEIGHT = 500, 500  # Adjust this based on your image size
     canvas = tk.Canvas(window, width=WIDTH, height=HEIGHT)
     canvas.pack()
 
@@ -204,6 +207,7 @@ def server_communication_handler(stub, canvas, file):
             # Stream the DICOM file's pixel data and receive the response
             # Scale the bounding boxes using the scaling ratio
             scaling_ratio = WIDTH / file.Columns
+            print(f"Scaling ratio: {scaling_ratio}")
             bounding_boxes = process_bounding_boxes(response, scaling_ratio)
             add_bounding_boxes_to_canvas(canvas, bounding_boxes)
         else:
@@ -220,7 +224,7 @@ def server_communication_handler(stub, canvas, file):
         try: 
             response = stub.GetDescription(description_request)
             if response.status.success == comms.Status.SUCCESS:
-                print(f"Bounding box {bbox[0]}{bbox[1]}{bbox[2]}{bbox[3]}")
+                print(f"Bounding box ({bbox[0]},{bbox[1]})  ({bbox[2]},{bbox[3]})")
                 for conf in response.confidence_list:
                     print(f"{conf.name}:{conf.confidence}")
         except grpc.RpcError as er:
