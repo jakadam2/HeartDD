@@ -2,42 +2,15 @@ import torch
 
 from scipy.stats import multivariate_normal
 from skimage.morphology import skeletonize
+import cv2 as cv
+import numpy as np
 
 
 class HDBifurcationPDF:
 
     cov = [[10,0],[0,10]]
 
-    def __init__(self,mask:torch.Tensor):
-        self.skeletonized_mask = skeletonize(mask)
-        self.bifurcation_distributions: list = self._find_bifurcations()
-
-    def __call__(self,x:int,y:int) -> float:
-        return self.predict(x,y)
-
-    def predict(self,x:int,y:int) -> float:
-        max_prob = 0
-        for distribution in self.bifurcation_distributions:
-            max_prob = max(max_prob,distribution.pdf([x,y]))
-        return max_prob
-    
-    def _find_bifurcations(self) -> list: 
-        for i in range(self.skeletonized_mask.shape[0]):
-            for j in range(self.skeletonized_mask.shape[1]):
-                if self._is_bifurcation(i,j):
-                    self.bifurcation_distributions.append(multivariate_normal(mean = [i,j],cov = HDBifurcationPDF.cov))
-
-    def _neighbours_8(self,x,y): 
-        x_min, y_min, x_max, y_max = x-1, y-1, x+1, y+1
-        x_min = max(x_min, 0)
-        y_min = max(y_min, 0)
-        x_max = min(x_max, self.skeletonized_mask.shape[0]-1)
-        y_max = min(y_max, self.skeletonized_mask.shape[1]-1)
-        return [ self.skeletonized_mask[x_min][y], self.skeletonized_mask[x_min][y_max], self.skeletonized_mask[x][y_max], self.skeletonized_mask[x_max][y_max],  
-                self.skeletonized_mask[x_max][y], self.skeletonized_mask[x_max][y_min], self.skeletonized_mask[x][y_min], self.skeletonized_mask[x_min][y_min] ]
-
-    def _is_bifurcation(self, x, y):
-        kernels = [
+    kernels = [
             [[1,0,1],
              [0,1,0],
              [0,1,0]],
@@ -58,10 +31,56 @@ class HDBifurcationPDF:
              [0,1,0],
              [0,0,1]],
 
-            []
+            [[0,0,1],
+             [0,1,0],
+             [1,0,1]],
 
+            [[1,0,0],
+             [0,1,0],
+             [1,0,1]],
 
+            [[1,0,0],
+             [0,1,0],
+             [1,0,1]],
 
+            [[0,1,0],
+             [1,1,0],
+             [0,0,1]],
+             
+            [[0,1,0],
+             [0,1,1],
+             [1,0,0]],
+             
+            [[1,0,0],
+             [0,1,1],
+             [0,1,0]],
+             
+            [[0,0,1],
+             [1,1,0],
+             [0,1,0]]]
 
-        ]
-        return False
+    def __init__(self,mask:torch.Tensor):
+        self.skeletonized_mask = skeletonize(mask)
+        self.skeletonized_mask = self.skeletonized_mask > 0.5
+        self.bifurcation_distributions: list = self._find_bifurcations()
+
+    def __call__(self,x:int,y:int) -> float:
+        return self.predict(x,y)
+
+    def predict(self,x:int,y:int) -> float:
+        max_prob = 0
+        for distribution in self.bifurcation_distributions:
+            max_prob = max(max_prob,distribution.pdf([x,y]))
+        return max_prob
+    
+    def _find_bifurcations(self) -> list:
+        results = np.zeros(shape = self.skeletonized_mask.shape)
+        for kernel in HDBifurcationPDF.kernels:
+            results = np.any(cv.erode(self.skeletonized_mask,kernel,iterations=1),results)
+
+        results_pdf = []
+        for x,y in np.where(results == 1):
+            results_pdf.append(multivariate_normal(mean=[x,y],cov=HDBifurcationPDF.cov))
+        
+        return results_pdf
+
