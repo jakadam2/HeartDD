@@ -22,7 +22,7 @@ class HDBifurcationPDF:
         bifurcation_distributions (list): A list of multivariate normal distributions 
             representing bifurcation points.
     """
-    cov = [[20,0],[0,20]]
+    cov = [[400,0],[0,400]]
 
     kernels = [
     np.array([[1,0,1],
