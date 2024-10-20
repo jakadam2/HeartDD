@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package DetectionAndDescription
+
+service DetectionAndDescription{
+    rpc GetBoundingBoxes(stream ImageRequest) returns (CoordinatesResponse)
+    rpc GetDescription(stream ImageRequest) return (DetectionResponse)
+}
+
+message ImageRequest{
+    string file_type = 1;
+    int32 width = 2;
+    int32 height = 3;
+    bytes image = 4;
+    
+}
+
+message DetectionResponse{
+    ResponseStatus status = 1;
+    optional repeated Coordinates coordinates_list = 3;
+}
+
+message DescriptionResponse{
+    ResponseStatus status = 1;
+    optional repeated Confidence confidence_list = 3;
+}
+
+message Coordinates{
+    \\upper left corner
+    float x1 = 1;
+    float y1 = 2;
+
+    \\lower right corner
+    float x2 = 3;
+    float y2 = 4;
+}
+
+message Confidence{
+    string name = 1;
+    float confidence = 2;
+}
+
+message ResponseStatus{
+    bool success = 1;
+    optional string = 2;
+}
+

@@ -1,4 +1,6 @@
 /datasets/*
+/venv/
 *__pycache__*
 *.pt
 *.pth
+*.ipynb
