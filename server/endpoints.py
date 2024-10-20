@@ -1,8 +1,13 @@
 #THIS IS THE FILE USED TO IMPLEMENT ENDPOINTS TO INTERACT WITH MODELS
 #REPLACE THESE FUNCTIONS WITH WHATEVER YOU NEED
+from description.lesion_desriber import LesionDescriber
 
 from PIL import Image
 import random
+
+from typing import Union
+
+from torchvision import transforms
 
 def detect_bounding_boxes(image: Image) -> [{}]:
     # This function takes an image in the PIL.Image format
@@ -13,23 +18,14 @@ def detect_bounding_boxes(image: Image) -> [{}]:
     return [{'x1': 10, 'y1': 20, 'x2': random.uniform(11, w), 'y2': 60},
                 {'x1': 100, 'y1': 120, 'x2': 30, 'y2': random.uniform(120, h)}]
 
-def describe_bbox(image: Image, bbox: []) -> [{}]:
-    # This function takes the whole image and the bbox in the format described above
-    # It should return a list of confidences in format
-    # {name: name, confidence: confidence}
+def describe_bbox(image: Image,mask: Image, bboxes: list[Union[int,int]]) -> list[dict[str:float]]:
 
-    # Simulate detection of some objects in the image with random confidence scores
-    object_names = ['Person', 'Car', 'Tree', 'Dog', 'Cat']  # Example object classes
-    confidences = []
-    # Randomly generate some detections (between 1 and 5)
-    num_detections = random.randint(1, 5)
+    describer = LesionDescriber()
+    results = []
+    pll = transforms.ToTensor()
+    image_tensor = pll(image)
+    mask_tensor = pll(mask)
 
-    for _ in range(num_detections):
-        name = random.choice(object_names)  # Randomly select an object
-        confidence = round(random.uniform(0.5, 1.0), 2)  # Random confidence between 0.5 and 1.0
-        confidences.append({
-            "name": name,
-            "confidence": confidence
-        })
-
-    return confidences
+    for bbox in bboxes:
+        results.append(describer(image_tensor,mask_tensor,bbox))
+    return results
