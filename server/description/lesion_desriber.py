@@ -1,7 +1,7 @@
 import torch
 
-from skeletonization import HDBifurcationPDF
-from layers import HDModel,HDHOGLayer
+from description.skeletonization import HDBifurcationPDF
+from description.layers import HDModel,HDHOGLayer
 
 from typing import Union
 
