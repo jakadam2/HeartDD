@@ -75,34 +75,50 @@ def display_image_with_bounding_boxes(dicom, bounding_boxes, width: int, height:
     window.mainloop()
 
 
-def load_dicom():
-    filename = askopenfilename()
-    #filename = get_testdata_file("CT_small.dcm")
+def load_file():
+    filename = askopenfilename()  # Use file picker to load a file
+
+    # Validate file extension
     filename_split = filename.rsplit(".", 1)
-    if (len(filename_split) < 2):
+    if len(filename_split) < 2:
         print("Incorrect file")
         return None
-    extension = filename_split[1]
+
+    extension = filename_split[1].lower()  # Convert extension to lowercase for consistency
     file = None
+    image = None  # This will hold the final PIL image
+
     match extension:
         case "dcm":
+            # Load DICOM file and convert to PIL Image
             file = dicom.dcmread(filename)
+            pixel_array = file.pixel_array  # Get pixel array from the DICOM file
+
+            # Normalize the pixel data and convert it to uint8 for display (if needed)
+            pixel_array = (pixel_array - np.min(pixel_array)) / (np.max(pixel_array) - np.min(pixel_array)) * 255
+            pixel_array = pixel_array.astype(np.uint8)
+
+            # Check if it's a grayscale image (2D array) or RGB-like (3D array)
+            image = Image.fromarray(pixel_array)  # 'L' for grayscale
+
         case "png" | "jpg":
-            file = Image.open(filename)
+            # Load PNG/JPG file directly as PIL Image
+            image = Image.open(filename)
+
         case _:
-            print("Incorrect file format, files must be dicom, png or jpg")
-            return None
-    if file == None:
-        print("OwO, something went howwibly bad. Sowwwwy T~T")
-        return None 
-    print(f"{file.Columns}x{file.Rows}")
-    return file
+            print("Incorrect file format, files must be DICOM, PNG, or JPG")
+            return None 
+
+    return image
 
 
 def generate_image_request(dicom_file):
-    pixel_data = dicom_file.pixel_array.tobytes()
-    width = dicom_file.Columns
-    height = dicom_file.Rows
+    img = file.convert("RGB")  # Convert image to RGB if it's not already
+    width, height = img.size
+    # Convert PIL image to byte array
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format="PNG")  # Save it as PNG or any desired format
+    pixel_data = img_byte_arr.getvalue()
     chunk_size = 1024 * 1024
     for i in range(0, len(pixel_data), chunk_size):
         chunk = pixel_data[i: i+chunk_size]
@@ -114,9 +130,14 @@ def generate_image_request(dicom_file):
 
 
 def generate_desc_request(dicom, bbox):
-    pixel_data = dicom.pixel_array.tobytes()
-    width = dicom.Columns
-    height = dicom.Rows
+
+    img = file.convert("RGB")  # Convert image to RGB if it's not already
+    width, height = img.size
+    # Convert PIL image to byte array
+    img_byte_arr = io.BytesIO()
+    img.save(img_byte_arr, format="PNG")  # Save it as PNG or any desired format
+    pixel_data = img_byte_arr.getvalue()
+    
     chunk_size = 1024 * 1024
     coordinates = comms.Coordinates(x1=bbox[0], y1=bbox[1], x2=bbox[2], y2=bbox[3])
     for i in range(0, len(pixel_data), chunk_size):
@@ -136,18 +157,10 @@ def add_bounding_boxes_to_canvas(canvas, bounding_boxes):
         canvas.create_rectangle(x1, y1, x2, y2, outline="red", width=2)
 
 
-def display_image(dicom, width, height, canvas, image_container):
+def display_image(image, width, height, canvas, image_container):
     """Displays the image immediately."""
-    pixel_array = dicom.pixel_array
-    normalized_pixel_array = (pixel_array - np.min(pixel_array)) / (np.max(pixel_array) - np.min(pixel_array)) * 255
-    normalized_pixel_array = normalized_pixel_array.astype(np.uint8)
 
     # Convert the numpy array to a PIL image
-    if normalized_pixel_array.ndim == 2:  # Grayscale image
-        image = Image.fromarray(normalized_pixel_array)
-    else:
-        image = Image.fromarray(normalized_pixel_array)
-
     # Resize image to fit window
     image = image.resize((width, height))
 
@@ -170,9 +183,10 @@ def run_client():
     channel = grpc.insecure_channel('localhost:50051')
     stub = comms_grpc.DetectionAndDescriptionStub(channel)
 
-    file = load_dicom()
+    file = load_file()
     if file is None:
-        return  # Exit if no file is loaded
+        print("OwO, something went howwibly bad. Sowwwwy T~T")
+        return None  # Exit if no file is loaded
 
     # Initialize Tkinter window
     window = tk.Tk()
@@ -197,16 +211,16 @@ def run_client():
     # Run the Tkinter main loop
     window.mainloop()
 
-def server_communication_handler(stub, canvas, file):
-    detection_request = generate_image_request(file)
+def server_communication_handler(stub, canvas, image):
+    detection_request = generate_image_request(image)
     bounding_boxes = None
     try:
         response = stub.GetBoundingBoxes(detection_request)
         if response.status.success == comms.Status.SUCCESS:
             """Thread function to send the gRPC request and draw bounding boxes on the image."""
-            # Stream the DICOM file's pixel data and receive the response
             # Scale the bounding boxes using the scaling ratio
-            scaling_ratio = WIDTH / file.Columns
+            im_width, im_height = image.size
+            scaling_ratio = WIDTH / im_width
             print(f"Scaling ratio: {scaling_ratio}")
             bounding_boxes = process_bounding_boxes(response, scaling_ratio)
             add_bounding_boxes_to_canvas(canvas, bounding_boxes)
@@ -216,11 +230,11 @@ def server_communication_handler(stub, canvas, file):
         print(f"gRPC erorr: {er}")
 
     if bounding_boxes is None:
-        print("Something went wrong line: 204")
+        print("Something went wrong line: 233")
         return
 
     for bbox in bounding_boxes:
-        description_request = generate_desc_request(file, bbox)     
+        description_request = generate_desc_request(image, bbox)     
         try: 
             response = stub.GetDescription(description_request)
             if response.status.success == comms.Status.SUCCESS:
