@@ -46,6 +46,3 @@ class MaskUnpacker:
 if __name__ == '__main__':
     mask_unpacker = MaskUnpacker('./datasets/images/zipped_mask.csv','./datasets/images/masks')
     mask_unpacker.unpack_masks_to_dir()
-
-
-
