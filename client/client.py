@@ -39,54 +39,16 @@ def process_bounding_boxes(response, scaling_ratio):
     return bounding_boxes
 
 
-def display_image_with_bounding_boxes(dicom, bounding_boxes, width: int, height: int):
-    window = tk.Tk()
-    window.title("DICOM Image with Bounding Boxes")
-
-    # Convert pixel data to a format that can be displayed in Tkinter
-    pixel_array = dicom.pixel_array
-    normalized_pixel_array = (pixel_array - np.min(pixel_array)) / (np.max(pixel_array) - np.min(pixel_array)) * 255
-    normalized_pixel_array = normalized_pixel_array.astype(np.uint8)
-
-    # Convert the numpy array to a PIL image
-    if normalized_pixel_array.ndim == 2:  # Grayscale image
-        image = Image.fromarray(normalized_pixel_array)
-    else:
-        # If it's a multi-channel image (RGB), handle accordingly
-        image = Image.fromarray(normalized_pixel_array)
-
-    # Resize image to fit window if needed (optional)
-    image = image.resize((width, height))
-
-    # Convert PIL image to ImageTk for Tkinter
-    image_tk = ImageTk.PhotoImage(image)
-
-    # Create a Canvas to display the image
-    canvas = tk.Canvas(window, width=width, height=height)
-    canvas.pack()
-    # Display the image on the Canvas
-    canvas.create_image(0, 0, anchor=tk.NW, image=image_tk)
-    # Draw bounding boxes on the image
-    for box in bounding_boxes:
-        print(box[0], box[1], box[2], box[3])
-        x1, y1, x2, y2 = box[0], box[1], box[2], box[3]
-        canvas.create_rectangle(x1, y1, x2, y2, outline="red", width=2)
-
-    window.mainloop()
-
-
 def load_file():
     filename = askopenfilename()  # Use file picker to load a file
 
     # Validate file extension
     filename_split = filename.rsplit(".", 1)
     if len(filename_split) < 2:
-        print("Incorrect file")
+        print("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
         return None
 
     extension = filename_split[1].lower()  # Convert extension to lowercase for consistency
-    file = None
-    image = None  # This will hold the final PIL image
 
     match extension:
         case "dcm":
@@ -106,13 +68,13 @@ def load_file():
             image = Image.open(filename)
 
         case _:
-            print("Incorrect file format, files must be DICOM, PNG, or JPG")
+            print("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
             return None 
 
     return image
 
 
-def generate_image_request(dicom_file):
+def generate_detection_request(dicom_file):
     img = file.convert("RGB")  # Convert image to RGB if it's not already
     width, height = img.size
     # Convert PIL image to byte array
@@ -157,12 +119,12 @@ def add_bounding_boxes_to_canvas(canvas, bounding_boxes):
         canvas.create_rectangle(x1, y1, x2, y2, outline="red", width=2)
 
 
-def display_image(image, width, height, canvas, image_container):
+def display_image(image, canvas, image_container):
     """Displays the image immediately."""
 
     # Convert the numpy array to a PIL image
     # Resize image to fit window
-    image = image.resize((width, height))
+    image = image.resize((WIDTH, HEIGHT))
 
     # Convert to ImageTk for Tkinter
     image_tk = ImageTk.PhotoImage(image)
@@ -199,7 +161,7 @@ def run_client():
     # Dictionary to hold the reference to the image (to prevent garbage collection)
     image_container = {}
     # Display the image immediately
-    display_image(file, WIDTH, HEIGHT, canvas, image_container)
+    display_image(file, canvas, image_container)
 
     # Start a separate thread to send the gRPC request and draw bounding boxes
     threading.Thread(
@@ -212,7 +174,7 @@ def run_client():
     window.mainloop()
 
 def server_communication_handler(stub, canvas, image):
-    detection_request = generate_image_request(image)
+    detection_request = generate_detection_request(image)
     bounding_boxes = None
     try:
         response = stub.GetBoundingBoxes(detection_request)
@@ -225,12 +187,12 @@ def server_communication_handler(stub, canvas, image):
             bounding_boxes = process_bounding_boxes(response, scaling_ratio)
             add_bounding_boxes_to_canvas(canvas, bounding_boxes)
         else:
-            print("Error code: 500") 
+            print(f"Error received from the server {response.status.err_message}") 
     except grpc.RpcError as er:
         print(f"gRPC erorr: {er}")
 
     if bounding_boxes is None:
-        print("Something went wrong line: 233")
+        print("Bounding boxes not found ")
         return
 
     for bbox in bounding_boxes:
