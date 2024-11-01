@@ -9,8 +9,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import grpc
 from concurrent import futures
-import detection_grpc.detection_pb2_grpc as comms_grpc
-import detection_grpc.detection_pb2 as comms
+import detection_pb2_grpc as comms_grpc
+import detection_pb2 as comms
 from PIL import Image
 import io
 import numpy as np
@@ -25,6 +25,7 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
     def GetBoundingBoxes(self, request_iterator, context):
         print("Detection request inboud")
         image_data = io.BytesIO()  # To accumulate image bytes
+        mask_data = io.BytesIO()
         width = None
         height = None
 
@@ -35,15 +36,18 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
                 height = request.height
             
             # Write the incoming image bytes to the BytesIO object
+            mask_data.write(request.mask)
             image_data.write(request.image)
         # At this point, the whole image is received in 'image_data'
         image_data.seek(0)  # Reset the buffer's position to the start
-       
+        mask_data.seek(0)
         response = None
         try:
+            bit_mask = np.frombuffer(mask_data.getvalue(), dtype=np.uint8)
+            bit_mask = bit_mask.reshape((height, width))
             #Load image data into actual image
             pixel_array = np.frombuffer(image_data.getvalue(), dtype=np.uint8)
-            pixel_array = pixel_array.reshape((3, height, width))  # Reshape to 3D array
+            pixel_array = pixel_array.reshape((height, width))  # Reshape to 3D array
             image = Image.fromarray(pixel_array)
 
 
@@ -55,10 +59,10 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
             #find bounding boxes, this is a placeholder
             #bounding_boxes = ep.detect_bounding_boxes(image)
             bounding_boxes = {
-                x1: 1,
-                y1: 1,
-                x2: 2,
-                y2: 2,
+                "x1": 1,
+                "y1": 1,
+                "x2": 2,
+                "y2": 2,
             }
             for box in bounding_boxes:
                 coordinates = comms.Coordinates(x1=box['x1'], y1=box['y1'], x2=box['x2'], y2=box['y2'])
@@ -100,12 +104,16 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
                 height = request.height
             
             # Write the incoming image bytes to the BytesIO object
+            mask_data.write(request.mask)
             image_data.write(request.image)
         # At this point, the whole image is received in 'image_data'
+        mask_data.seek(0)
         image_data.seek(0)  # Reset the buffer's position to the start
        
         response = None
         try:
+            mask = np.frombuffer(mask_data.getvalue(), dtype=np.uint8)
+            mask = mask.reshape((height, width))
             #Load image data into actual image
             pixel_array = np.frombuffer(image_data.getvalue(), dtype=np.uint16)
             pixel_array = pixel_array.reshape((height, width))  # Reshape to 2D array
@@ -117,7 +125,7 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
             status = comms.ResponseStatus(success = comms.Status.SUCCESS)
             response = comms.DescriptionResponse(status =status, confidence_list = confidence_list)
             #find bounding boxes, this is a placeholder
-            confidences = ep.describe_bbox(image, coordinates)
+            confidences = ep.describe_bbox(image = image,mask = mask, coordinates = coordinates)
             for description in confidences:
                 confidence = comms.Confidence(name=description["name"], confidence=description["confidence"])
                 response.confidence_list.append(confidence)

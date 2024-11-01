@@ -7,8 +7,8 @@ sys.path.append(os.path.abspath(root_dir))
 
 import preprocessing.mask_to_pixel as preprocessing
 import grpc
-import detection_grpc.detection_pb2_grpc as comms_grpc
-import detection_grpc.detection_pb2 as comms
+import detection_pb2_grpc as comms_grpc
+import detection_pb2 as comms
 import pydicom as dicom
 import tkinter as tk
 from tkinter.filedialog import askopenfilename
@@ -108,20 +108,26 @@ def load_bitmask(filename: str):
     print(f"Exact frame not found. Using closest frame {closest_frame} for image_id {image_id}.")
     return closest_bitmask
 
-def generate_detection_request(image: Image):
+
+def generate_detection_request(image: Image, bit_mask: np.array):
     try:
         image_array = np.array(image)
+        print(image_array.shape)
         height, width = image_array.shape[:2]
 
         pixel_data = image_array.tobytes()
+        mask_data = bit_mask.tobytes()
+
 
         num_chunks = len(pixel_data) // CHUNK_SIZE + (1 if len(pixel_data) % CHUNK_SIZE else 0)
-        print(f"{width}x{height}| {len(image_array)} | {len(pixel_data)}")
         # Then, yield pixel data in chunks
         for i in range(num_chunks):
             start = i * CHUNK_SIZE
             end = start + CHUNK_SIZE
-            yield comms.DetectionRequest(height=height, width=width, image=pixel_data[start:end])
+            yield comms.DetectionRequest(
+                        height = height, width = width,
+                        image = pixel_data[start:end], 
+                        mask = mask_data[start:end])
 
     except Exception as ex:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -129,12 +135,13 @@ def generate_detection_request(image: Image):
             print(message)
 
 
-def generate_desc_request(image: Image, bbox):
+def generate_desc_request(image: Image, bit_mask: np.array, bbox):
     try:
         image_array = np.array(image)
         height, width = image_array.shape[:2]
 
         pixel_data = image_array.tobytes()
+        mask_data = bit_mask.tobytes()
 
         coordinates = comms.Coordinates(x1=bbox[0], y1=bbox[1], x2=bbox[2], y2=bbox[3])
         num_chunks = len(pixel_data) // CHUNK_SIZE + (1 if len(pixel_data) % CHUNK_SIZE else 0)
@@ -143,7 +150,11 @@ def generate_desc_request(image: Image, bbox):
         for i in range(num_chunks):
             start = i * CHUNK_SIZE
             end = start + CHUNK_SIZE
-            yield comms.DescriptionRequest(height=height, width=width, image=pixel_data[start:end], coords = coordinates)
+            yield comms.DescriptionRequest(
+                        height = height, width = width, 
+                        image = pixel_data[start:end],
+                        mask = mask_data[start:end],
+                        coords = coordinates)
 
     except Exception as ex:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -207,19 +218,19 @@ def run_client():
     # Display the image immediately
     display_image(image, canvas, image_container)
 
-    # Start a separate thread to send the gRPC request and draw bounding boxes
-    #threading.Thread(
-    #    target=server_communication_handler,
-    #    args=(stub, canvas, file),
-    #    daemon=True
-    #).start()
+    #Start a separate thread to send the gRPC request and draw bounding boxes
+    threading.Thread(
+        target=server_communication_handler,
+        args=(stub, canvas, image, mask),
+        daemon=True
+    ).start()
 
     # Run the Tkinter main loop
     window.mainloop()
 
 
-def server_communication_handler(stub, canvas, image):
-    detection_request = generate_detection_request(image)
+def server_communication_handler(stub, canvas, image, mask):
+    detection_request = generate_detection_request(image, mask)
     bounding_boxes = None
     try:
         response = stub.GetBoundingBoxes(detection_request)
