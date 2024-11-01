@@ -4,13 +4,12 @@ from description.lesion_desriber import LesionDescriber
 from detection.detect import LesionDetector
 
 from PIL import Image
-import random
-
+import numpy.typing as npt
 from typing import Union
 
 from torchvision import transforms
 
-def detect_bounding_boxes(image: Image, mask: np.ndarray) -> list[dict[str:float]]:
+def detect_bounding_boxes(image: Image, mask: npt.ArrayLike) -> list[dict[str:float]]:
 
     detector = LesionDetector(image)
     coordinates = detector.detect()
@@ -20,7 +19,7 @@ def detect_bounding_boxes(image: Image, mask: np.ndarray) -> list[dict[str:float
     # It returns positions of the bounding boxes in format
     # {x1:x1, y1:y1, x2:x2, y2:y2}
 
-def describe_bbox(image: Image, mask: np.ndarray, bboxes: list[Union[int,int]]) -> list[dict[str:float]]:
+def describe_bbox(image: Image, mask: npt.ArrayLike, bboxes: list[Union[int,int]]) -> list[dict[str:float]]:
 
     describer = LesionDescriber()
     results = []

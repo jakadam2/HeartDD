@@ -1,12 +1,9 @@
 
 # image_detection_pb2_grpc.py and image_detection_pb2.py should be generated from your .proto file using protoc
-
 import sys
 import os
 
 # Add the project root directory to sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 import grpc
 from concurrent import futures
 import detection_pb2_grpc as comms_grpc
@@ -57,13 +54,8 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
             response = comms.DetectionResponse(status =status, coordinates_list = coordinates_list)
 
             #find bounding boxes, this is a placeholder
-            #bounding_boxes = ep.detect_bounding_boxes(image)
-            bounding_boxes = {
-                "x1": 1,
-                "y1": 1,
-                "x2": 2,
-                "y2": 2,
-            }
+            bounding_boxes = ep.detect_bounding_boxes(image = image, mask = mask)
+            
             for box in bounding_boxes:
                 coordinates = comms.Coordinates(x1=box['x1'], y1=box['y1'], x2=box['x2'], y2=box['y2'])
                 response.coordinates_list.append(coordinates)
