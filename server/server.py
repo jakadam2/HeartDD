@@ -42,8 +42,8 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
         response = None
         try:
             #Load image data into actual image
-            pixel_array = np.frombuffer(image_data.getvalue(), dtype=np.uint16)
-            pixel_array = pixel_array.reshape((height, width))  # Reshape to 2D array
+            pixel_array = np.frombuffer(image_data.getvalue(), dtype=np.uint8)
+            pixel_array = pixel_array.reshape((3, height, width))  # Reshape to 3D array
             image = Image.fromarray(pixel_array)
 
 
@@ -53,7 +53,13 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
             response = comms.DetectionResponse(status =status, coordinates_list = coordinates_list)
 
             #find bounding boxes, this is a placeholder
-            bounding_boxes = ep.detect_bounding_boxes(image)
+            #bounding_boxes = ep.detect_bounding_boxes(image)
+            bounding_boxes = {
+                x1: 1,
+                y1: 1,
+                x2: 2,
+                y2: 2,
+            }
             for box in bounding_boxes:
                 coordinates = comms.Coordinates(x1=box['x1'], y1=box['y1'], x2=box['x2'], y2=box['y2'])
                 response.coordinates_list.append(coordinates)

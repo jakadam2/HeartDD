@@ -4,3 +4,5 @@
 *.pt
 *.pth
 *.ipynb
+/base_images
+dataset.csv

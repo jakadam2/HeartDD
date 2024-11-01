@@ -17,6 +17,7 @@ import threading
 import time
 
 WIDTH, HEIGHT = 800, 800
+CHUNK_SIZE = 1024
 
 def process_bounding_boxes(response, scaling_ratio):
     # Initialize an empty list to store the rescaled bounding boxes
@@ -39,7 +40,7 @@ def process_bounding_boxes(response, scaling_ratio):
     return bounding_boxes
 
 
-def load_file():
+def load_file() -> Image:
     filename = askopenfilename()  # Use file picker to load a file
 
     # Validate file extension
@@ -49,67 +50,106 @@ def load_file():
         return None
 
     extension = filename_split[1].lower()  # Convert extension to lowercase for consistency
+    try:
+        match extension:
+            case "dcm":
+                # Load DICOM file and convert to PIL Image
+                file = dicom.dcmread(filename)
+                pixel_array = file.pixel_array  # Get pixel array from the DICOM file
 
-    match extension:
-        case "dcm":
-            # Load DICOM file and convert to PIL Image
-            file = dicom.dcmread(filename)
-            pixel_array = file.pixel_array  # Get pixel array from the DICOM file
+                # Normalize the pixel data and convert it to uint8 for display (if needed)
+                pixel_array = (pixel_array - np.min(pixel_array)) / (np.max(pixel_array) - np.min(pixel_array)) * 255
+                pixel_array = pixel_array.astype(np.uint8)
 
-            # Normalize the pixel data and convert it to uint8 for display (if needed)
-            pixel_array = (pixel_array - np.min(pixel_array)) / (np.max(pixel_array) - np.min(pixel_array)) * 255
-            pixel_array = pixel_array.astype(np.uint8)
+                # Check if it's a grayscale image (2D array) or RGB-like (3D array)
+                image = Image.fromarray(pixel_array)  # 'L' for grayscale
 
-            # Check if it's a grayscale image (2D array) or RGB-like (3D array)
-            image = Image.fromarray(pixel_array)  # 'L' for grayscale
+            case "png" | "jpg":
+                # Load PNG/JPG file directly as PIL Image
+                image = Image.open(filename)
 
-        case "png" | "jpg":
-            # Load PNG/JPG file directly as PIL Image
-            image = Image.open(filename)
-
-        case _:
-            print("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
-            return None 
+            case _:
+                print("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
+                return None 
+    except Exception as ex:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+            return None
 
     return image
 
 
-def generate_detection_request(dicom_file):
-    img = file.convert("RGB")  # Convert image to RGB if it's not already
-    width, height = img.size
-    # Convert PIL image to byte array
-    img_byte_arr = io.BytesIO()
-    img.save(img_byte_arr, format="PNG")  # Save it as PNG or any desired format
-    pixel_data = img_byte_arr.getvalue()
-    chunk_size = 1024 * 1024
-    for i in range(0, len(pixel_data), chunk_size):
-        chunk = pixel_data[i: i+chunk_size]
-        yield comms.DetectionRequest(
-            width=width,
-            height=height,
-            image=chunk
-        )
-
-
-def generate_desc_request(dicom, bbox):
-
-    img = file.convert("RGB")  # Convert image to RGB if it's not already
-    width, height = img.size
-    # Convert PIL image to byte array
-    img_byte_arr = io.BytesIO()
-    img.save(img_byte_arr, format="PNG")  # Save it as PNG or any desired format
-    pixel_data = img_byte_arr.getvalue()
+def load_bitmask(filename, csv_file):
+    # Parse the image_id and frame from the filename
+    match = re.match(r"(\d+)_(\d+)\.png", filename)
+    if not match:
+        raise ValueError("Filename format is incorrect. Expected {image_id}_{frame}.png")
     
-    chunk_size = 1024 * 1024
-    coordinates = comms.Coordinates(x1=bbox[0], y1=bbox[1], x2=bbox[2], y2=bbox[3])
-    for i in range(0, len(pixel_data), chunk_size):
-        chunk = pixel_data[i: i+chunk_size]
-        yield comms.DescriptionRequest(
-            coords = coordinates,
-            width=width,
-            height=height,
-            image=chunk
-        )
+    image_id = match.group(1)
+    frame = int(match.group(2))
+    
+    # Load the CSV file
+    df = pd.read_csv(csv_file)
+    # Filter rows with the correct image_id
+    image_rows = df[df['image_id'] == image_id]
+    
+    if image_rows.empty:
+        raise ValueError(f"No entry found for image_id {image_id} in the CSV file.")
+    # Check if the exact frame exists
+    exact_frame_row = image_rows[image_rows['frame'] == frame]
+    
+    if exact_frame_row.empty:
+        # Find the closest frame if exact match isn't found
+        closest_frame_row = image_rows.iloc[(image_rows['frame'] - frame).abs().argsort()[:1]]
+        closest_frame = closest_frame_row['frame'].values[0]
+        closest_bitmask = closest_frame_row['bitmask'].values[0]
+        print(f"Exact frame not found. Using closest frame {closest_frame} for image_id {image_id}.")
+        return closest_bitmask
+    return exact_frame_row['bitmask'].values[0]
+
+
+def generate_detection_request(file: Image):
+    try:
+        image_array = np.array(file)
+        height, width = image_array.shape[:2]
+
+        pixel_data = image_array.tobytes()
+
+        num_chunks = len(pixel_data) // CHUNK_SIZE + (1 if len(pixel_data) % CHUNK_SIZE else 0)
+        print(f"{width}x{height}| {len(image_array)} | {len(pixel_data)}")
+        # Then, yield pixel data in chunks
+        for i in range(num_chunks):
+            start = i * CHUNK_SIZE
+            end = start + CHUNK_SIZE
+            yield comms.DetectionRequest(height=height, width=width, image=pixel_data[start:end])
+
+    except Exception as ex:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
+
+
+def generate_desc_request(file: Image, bbox):
+    try:
+        image_array = np.array(file)
+        height, width = image_array.shape[:2]
+
+        pixel_data = image_array.tobytes()
+
+        coordinates = comms.Coordinates(x1=bbox[0], y1=bbox[1], x2=bbox[2], y2=bbox[3])
+        num_chunks = len(pixel_data) // CHUNK_SIZE + (1 if len(pixel_data) % CHUNK_SIZE else 0)
+        print(f"{width}x{height}| {len(image_array)} | {len(pixel_data)}")
+        # Then, yield pixel data in chunks
+        for i in range(num_chunks):
+            start = i * CHUNK_SIZE
+            end = start + CHUNK_SIZE
+            yield comms.DescriptionRequest(height=height, width=width, image=pixel_data[start:end], coords = coordinates)
+
+    except Exception as ex:
+            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            message = template.format(type(ex).__name__, ex.args)
+            print(message)
 
 
 def add_bounding_boxes_to_canvas(canvas, bounding_boxes):
@@ -172,6 +212,7 @@ def run_client():
 
     # Run the Tkinter main loop
     window.mainloop()
+
 
 def server_communication_handler(stub, canvas, image):
     detection_request = generate_detection_request(image)
