@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from detection_grpc import detection_pb2 as detection__grpc_dot_detection__pb2
+import detection_pb2 as detection__pb2
 
 GRPC_GENERATED_VERSION = '1.66.2'
 GRPC_VERSION = grpc.__version__
@@ -18,7 +18,7 @@ except ImportError:
 if _version_not_supported:
     raise RuntimeError(
         f'The grpc package installed is at version {GRPC_VERSION},'
-        + f' but the generated code in detection_grpc/detection_pb2_grpc.py depends on'
+        + f' but the generated code in detection_pb2_grpc.py depends on'
         + f' grpcio>={GRPC_GENERATED_VERSION}.'
         + f' Please upgrade your grpc module to grpcio>={GRPC_GENERATED_VERSION}'
         + f' or downgrade your generated code using grpcio-tools<={GRPC_VERSION}.'
@@ -36,13 +36,13 @@ class DetectionAndDescriptionStub(object):
         """
         self.GetBoundingBoxes = channel.stream_unary(
                 '/DetectionAndDescription.DetectionAndDescription/GetBoundingBoxes',
-                request_serializer=detection__grpc_dot_detection__pb2.DetectionRequest.SerializeToString,
-                response_deserializer=detection__grpc_dot_detection__pb2.DetectionResponse.FromString,
+                request_serializer=detection__pb2.DetectionRequest.SerializeToString,
+                response_deserializer=detection__pb2.DetectionResponse.FromString,
                 _registered_method=True)
         self.GetDescription = channel.stream_unary(
                 '/DetectionAndDescription.DetectionAndDescription/GetDescription',
-                request_serializer=detection__grpc_dot_detection__pb2.DescriptionRequest.SerializeToString,
-                response_deserializer=detection__grpc_dot_detection__pb2.DescriptionResponse.FromString,
+                request_serializer=detection__pb2.DescriptionRequest.SerializeToString,
+                response_deserializer=detection__pb2.DescriptionResponse.FromString,
                 _registered_method=True)
 
 
@@ -66,13 +66,13 @@ def add_DetectionAndDescriptionServicer_to_server(servicer, server):
     rpc_method_handlers = {
             'GetBoundingBoxes': grpc.stream_unary_rpc_method_handler(
                     servicer.GetBoundingBoxes,
-                    request_deserializer=detection__grpc_dot_detection__pb2.DetectionRequest.FromString,
-                    response_serializer=detection__grpc_dot_detection__pb2.DetectionResponse.SerializeToString,
+                    request_deserializer=detection__pb2.DetectionRequest.FromString,
+                    response_serializer=detection__pb2.DetectionResponse.SerializeToString,
             ),
             'GetDescription': grpc.stream_unary_rpc_method_handler(
                     servicer.GetDescription,
-                    request_deserializer=detection__grpc_dot_detection__pb2.DescriptionRequest.FromString,
-                    response_serializer=detection__grpc_dot_detection__pb2.DescriptionResponse.SerializeToString,
+                    request_deserializer=detection__pb2.DescriptionRequest.FromString,
+                    response_serializer=detection__pb2.DescriptionResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -100,8 +100,8 @@ class DetectionAndDescription(object):
             request_iterator,
             target,
             '/DetectionAndDescription.DetectionAndDescription/GetBoundingBoxes',
-            detection__grpc_dot_detection__pb2.DetectionRequest.SerializeToString,
-            detection__grpc_dot_detection__pb2.DetectionResponse.FromString,
+            detection__pb2.DetectionRequest.SerializeToString,
+            detection__pb2.DetectionResponse.FromString,
             options,
             channel_credentials,
             insecure,
@@ -127,8 +127,8 @@ class DetectionAndDescription(object):
             request_iterator,
             target,
             '/DetectionAndDescription.DetectionAndDescription/GetDescription',
-            detection__grpc_dot_detection__pb2.DescriptionRequest.SerializeToString,
-            detection__grpc_dot_detection__pb2.DescriptionResponse.FromString,
+            detection__pb2.DescriptionRequest.SerializeToString,
+            detection__pb2.DescriptionResponse.FromString,
             options,
             channel_credentials,
             insecure,
