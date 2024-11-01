@@ -2,8 +2,10 @@ import sys
 import os
 
 # Add the project root directory to sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+root_dir = os.path.join(os.path.dirname(__file__), "..")
+sys.path.append(os.path.abspath(root_dir))
 
+import preprocessing.mask_to_pixel as preprocessing
 import grpc
 import detection_grpc.detection_pb2_grpc as comms_grpc
 import detection_grpc.detection_pb2 as comms
@@ -15,11 +17,15 @@ from pydicom.data import get_testdata_file
 import numpy as np
 import threading
 import time
+import pandas as pd
+import re
 
 WIDTH, HEIGHT = 800, 800
 CHUNK_SIZE = 1024
+MASK_FILE = os.path.join(root_dir, 'base_images', 'good_df_newest.csv')
 
-def process_bounding_boxes(response, scaling_ratio):
+
+def process_bounding_boxes(response, scaling_ratio: float):
     # Initialize an empty list to store the rescaled bounding boxes
     bounding_boxes = []
 
@@ -40,14 +46,11 @@ def process_bounding_boxes(response, scaling_ratio):
     return bounding_boxes
 
 
-def load_file() -> Image:
-    filename = askopenfilename()  # Use file picker to load a file
-
+def load_file(filename: str) -> Image:
     # Validate file extension
     filename_split = filename.rsplit(".", 1)
     if len(filename_split) < 2:
-        print("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
-        return None
+        raise ValueError("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
 
     extension = filename_split[1].lower()  # Convert extension to lowercase for consistency
     try:
@@ -69,28 +72,25 @@ def load_file() -> Image:
                 image = Image.open(filename)
 
             case _:
-                print("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
-                return None 
+                raise ValueError("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
+
     except Exception as ex:
             template = "An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
-            print(message)
-            return None
+            raise ValueError(message)
 
     return image
 
 
-def load_bitmask(filename, csv_file):
+def load_bitmask(filename: str):
+    name = os.path.basename(filename).removesuffix(".png")
     # Parse the image_id and frame from the filename
-    match = re.match(r"(\d+)_(\d+)\.png", filename)
-    if not match:
+    image_id, frame = name.rsplit("_", 1)
+    if not image_id or not frame:
         raise ValueError("Filename format is incorrect. Expected {image_id}_{frame}.png")
-    
-    image_id = match.group(1)
-    frame = int(match.group(2))
-    
+    frame = int(frame)
     # Load the CSV file
-    df = pd.read_csv(csv_file)
+    df = pd.read_csv(MASK_FILE)
     # Filter rows with the correct image_id
     image_rows = df[df['image_id'] == image_id]
     
@@ -98,20 +98,19 @@ def load_bitmask(filename, csv_file):
         raise ValueError(f"No entry found for image_id {image_id} in the CSV file.")
     # Check if the exact frame exists
     exact_frame_row = image_rows[image_rows['frame'] == frame]
-    
-    if exact_frame_row.empty:
-        # Find the closest frame if exact match isn't found
-        closest_frame_row = image_rows.iloc[(image_rows['frame'] - frame).abs().argsort()[:1]]
-        closest_frame = closest_frame_row['frame'].values[0]
-        closest_bitmask = closest_frame_row['bitmask'].values[0]
-        print(f"Exact frame not found. Using closest frame {closest_frame} for image_id {image_id}.")
-        return closest_bitmask
-    return exact_frame_row['bitmask'].values[0]
+    if not exact_frame_row.empty:
+        return exact_frame_row['bitmask'].values[0]
 
+    # Find the closest frame if exact match isn't found
+    closest_frame_row = image_rows.iloc[(image_rows['frame'] - frame).abs().argsort()[:1]]
+    closest_frame = closest_frame_row['frame'].values[0]
+    closest_bitmask = closest_frame_row['segmentation'].values[0]
+    print(f"Exact frame not found. Using closest frame {closest_frame} for image_id {image_id}.")
+    return closest_bitmask
 
-def generate_detection_request(file: Image):
+def generate_detection_request(image: Image):
     try:
-        image_array = np.array(file)
+        image_array = np.array(image)
         height, width = image_array.shape[:2]
 
         pixel_data = image_array.tobytes()
@@ -130,9 +129,9 @@ def generate_detection_request(file: Image):
             print(message)
 
 
-def generate_desc_request(file: Image, bbox):
+def generate_desc_request(image: Image, bbox):
     try:
-        image_array = np.array(file)
+        image_array = np.array(image)
         height, width = image_array.shape[:2]
 
         pixel_data = image_array.tobytes()
@@ -185,8 +184,13 @@ def run_client():
     channel = grpc.insecure_channel('localhost:50051')
     stub = comms_grpc.DetectionAndDescriptionStub(channel)
 
-    file = load_file()
-    if file is None:
+    filename = askopenfilename()
+    image = load_file(filename)
+    packed_mask = load_bitmask(filename)
+    mask = preprocessing.MaskUnpacker._unpack_mask(packed_mask)
+    print(mask)
+
+    if image is None:
         print("OwO, something went howwibly bad. Sowwwwy T~T")
         return None  # Exit if no file is loaded
 
@@ -201,14 +205,14 @@ def run_client():
     # Dictionary to hold the reference to the image (to prevent garbage collection)
     image_container = {}
     # Display the image immediately
-    display_image(file, canvas, image_container)
+    display_image(image, canvas, image_container)
 
     # Start a separate thread to send the gRPC request and draw bounding boxes
-    threading.Thread(
-        target=server_communication_handler,
-        args=(stub, canvas, file),
-        daemon=True
-    ).start()
+    #threading.Thread(
+    #    target=server_communication_handler,
+    #    args=(stub, canvas, file),
+    #    daemon=True
+    #).start()
 
     # Run the Tkinter main loop
     window.mainloop()
