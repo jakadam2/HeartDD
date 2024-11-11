@@ -24,7 +24,7 @@ class ServerHandler:
             y1 = coordinates.y1
             x2 = coordinates.x2
             y2 = coordinates.y2
-            print(f"Coordinates: x1={coordinates.x1}, y1={coordinates.y1}, "
+            print(f"[CLIENT] Coordinates: x1={coordinates.x1}, y1={coordinates.y1}, "
                 f"x2={coordinates.x2}, y2={coordinates.y2}")
             # Append the rescaled bounding box to the list
             bounding_boxes.append([x1, y1, x2, y2])
@@ -44,7 +44,7 @@ class ServerHandler:
                             mask = mask_data[start:end],
                             coords = coordinates)
         except Exception as ex:
-            print(f"An exception of type {type(ex).__name__} occurred. Arguments:\n{ex.args}")
+            print(f"[CLIENT] An exception of type {type(ex).__name__} occurred. Arguments:\n{ex.args}")
 
 
     def generate_detection_request(self, image: Image, mask: npt.ArrayLike):
@@ -58,12 +58,11 @@ class ServerHandler:
                             image = pixel_data[start:end], 
                             mask = mask_data[start:end])
         except Exception as ex:
-            print(f"An exception of type {type(ex).__name__} occurred. Arguments:\n{ex.args}")
+            print(f"[CLIENT] An exception of type {type(ex).__name__} occurred. Arguments:\n{ex.args}")
 
     def prepare_request_data(self, image: Image, mask: npt.ArrayLike):
         try:
             image_array = np.array(image)
-            print(image_array.shape)
             height, width = image_array.shape[:2]
 
             pixel_data = image_array.tobytes()
@@ -71,7 +70,7 @@ class ServerHandler:
             num_chunks = len(pixel_data) // CHUNK_SIZE + (1 if len(pixel_data) % CHUNK_SIZE else 0)
             return height, width, pixel_data, mask_data, num_chunks
         except Exception as ex:
-                template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                template = "[CLIENT] An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 print(message)
 
@@ -89,39 +88,8 @@ class ServerHandler:
         request = self.generate_description_request(image, mask, bbox)
         response = self.stub.GetDescription(request) 
         if response.status.sucess == comms.Status.SUCCESS:
-            print(f"Bounding box ({bbox[0]},{bbox[1]})  ({bbox[2]},{bbox[3]})")
+            print(f"[CLIENT] Bounding box ({bbox[0]},{bbox[1]})  ({bbox[2]},{bbox[3]})")
             for conf in response.confidence_list:
                 print(f"{conf.name}:{conf.confidence}")
         else:   
             raise ValueError(response.ResponseStatus.err_message)
-
-
-
-def server_communication_handler(stub, canvas, image, mask):
-    detection_request = generate_detection_request(image, mask)
-    bounding_boxes = None
-    try:
-        response = stub.GetBoundingBoxes(detection_request)
-        if response.status.success == comms.Status.SUCCESS:
-            """Thread function to send the gRPC request and draw bounding boxes on the image."""
-            # Scale the bounding boxes using the scaling ratio
-            im_width, im_height = image.size
-            scaling_ratio = WIDTH / im_width
-            print(f"Scaling ratio: {scaling_ratio}")
-            bounding_boxes = process_bounding_boxes(response, scaling_ratio)
-            add_bounding_boxes_to_canvas(canvas, bounding_boxes)
-        else:
-            print(f"Error received from the server {response.status.err_message}") 
-    except grpc.RpcError as er:
-        print(f"gRPC erorr: {er}")
-
-    if bounding_boxes is None:
-        print("Bounding boxes not found ")
-        return
-
-    for bbox in bounding_boxes:
-        description_request = generate_desc_request(image, bbox)     
-        try: 
-            response = stub.GetDescription(description_request)
-        except grpc.RpcError as er:
-            print(f"gRPC error: {er}")

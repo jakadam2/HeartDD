@@ -39,26 +39,21 @@ class WindowController:
         self.describe_button.pack(side=tk.LEFT, padx=5, pady=5)
 
     def display_image(self, image_tk):
-        """Display image on the canvas."""
         self.canvas.delete("all")
         self.canvas.create_image(0, 0, anchor=tk.NW, image=image_tk)
         self.window.update()
 
     def display_bboxes(self, bounding_boxes):
-        """Display bounding boxes on the canvas."""
         for bbox in bounding_boxes:
             ResizableCanvasShape(self.canvas, bbox)
     
     def load_action(self):
-        """Action to load a file in a separate thread."""
         threading.Thread(target=self.client.load_file, daemon=True).start()
 
     def detect_action(self):
-        """Action to detect lesions in a separate thread."""
         threading.Thread(target=self.client.request_detect, daemon=True).start()
 
     def describe_action(self):
-        """Action to describe lesions in a separate thread."""
         threading.Thread(target=self.client.request_describe, daemon=True).start()
 
 
@@ -79,7 +74,7 @@ class Client:
         self.server = sch.ServerHandler()
         
         # Load file and start polling for UI updates
-        self.load_file() 
+        self.load_file(test_file)
         self.poll_queue()
 
     def poll_queue(self):
@@ -89,7 +84,8 @@ class Client:
                 flag = self.queue.get_nowait()
                 match flag:
                     case Flag.DETECT:
-                        self.window_controller.display_bboxes(self.bounding_boxes)
+                        self.window_controller.display_bboxes(
+                            self.scalebboxes())
                     case Flag.DESCRIBE:
                         self.display_confidence()  # Assuming a method to show confidence data
                     case Flag.LOAD:
@@ -99,43 +95,57 @@ class Client:
         except queue.Empty:
             pass
         except Exception as ex:
-            print(f"An exception of type {type(ex).__name__} occurred. Arguments:\n{ex.args}")
+            print(f"[CLIENT] An exception of type {type(ex).__name__} occurred. Arguments:\n{ex.args}")
         
         # Continue polling every 100 ms
         self.window_controller.window.after(100, self.poll_queue)
 
+    def scalebboxes(self):
+        img_width, img_height = self.image.size
+        scaling_ratio = WIDTH / img_width
+        scaled_bboxes = []
+        for bbox in self.bounding_boxes:
+            scaled_bboxes.append([ 
+                bbox[0] * scaling_ratio,
+                bbox[1] * scaling_ratio,
+                bbox[2] * scaling_ratio,
+                bbox[3] * scaling_ratio
+            ])
+        return scaled_bboxes
 
-    def load_file(self):
-        """Load the image and bitmask, then update queue for display."""
+    def load_file(self, name=None):
         try:
-            self.files.get_file_name(name=test_file)
+            self.files.get_file_name(name)
             self.image = self.files.load_file()
             self.image_tk = ImageTk.PhotoImage(self.image.resize((WIDTH, HEIGHT)))
             self.bitmask = self.files.load_bitmask()
             self.queue.put(Flag.LOAD)
         except ValueError as ex:
-            print(f"An error occurred while loading a file {ex.args}")
+            print(f"[CLIENT] An error occurred while loading a file {ex.args}")
 
 
     def request_detect(self):
-        """Request lesion detection from server and update queue."""
         if self.image is None:
-            print("No image loaded")
+            print("[CLIENT] No image loaded")
             return
         self.bounding_boxes = self.server.request_detection(self.image, self.bitmask)
         self.queue.put(Flag.DETECT)
 
 
     def request_describe(self):
-        """Request lesion description from server and update queue."""
         if self.bounding_boxes is None:
-            print("No bounding boxes present")
+            print("[CLIENT] No bounding boxes present")
             return
         for bbox in self.bounding_boxes:
             self.server.request_description(self.image, self.bitmask, bbox)
         self.queue.put(Flag.DESCRIBE)
 
-if __name__ == "__main__":
+
+def start():
     root = tk.Tk()
     client = Client(root)
     root.mainloop()
+
+
+if __name__ == "__main__":
+    start()

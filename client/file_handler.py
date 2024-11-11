@@ -19,8 +19,8 @@ class FileHandler:
         self.extension = ""
 
 
-    def get_file_name(self, name=""):
-        if name == "":
+    def get_file_name(self, name=None):
+        if name is None:
             name = askopenfilename()
 
         self.filename, self.extension = os.path.splitext(name)
@@ -78,7 +78,7 @@ class FileHandler:
             closest_frame_row = image_rows.iloc[(image_rows['frame'] - frame).abs().argsort()[:1]]
             closest_frame = closest_frame_row['frame'].values[0]
             bitmask = closest_frame_row['segmentation'].values[0]
-            print(f"Exact frame not found. Using closest frame {closest_frame} for image_id {image_id}.")
+            print(f"[CLIENT] Exact frame not found. Using closest frame {closest_frame} for image_id {image_id}.")
 
         mask = preprocessing.MaskUnpacker._unpack_mask(bitmask)
         return mask
