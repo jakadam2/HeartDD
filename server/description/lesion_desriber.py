@@ -13,6 +13,7 @@ class LesionDescriber:
     def __init__(self):
         hog_layer = HDHOGLayer()
         self.model = HDModel(hog=hog_layer)
+        self.model.load_state_dict(torch.load('description/weights/best.pth'))
 
     def __call__(self,image:torch.Tensor,mask:torch.Tensor,coords:Union[int,int]):
         return self.predict(image,mask,coords)

@@ -2,6 +2,9 @@ import subprocess
 import sys
 import importlib.metadata
 import time
+import gdown
+
+ID_DESC_WEIGHTS = '1He7ELAxJM-RuKS9m4fOfvrtMmRuF-T4P'
 
 def install_missing_dependencies():
     try:
@@ -22,6 +25,9 @@ def install_missing_dependencies():
             subprocess.check_call([sys.executable, "-m", "pip", "install", *missing_packages])
         else:
             print("All dependencies are already installed.")
+
+        gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DESC_WEIGHTS}',output='server/description/weights/best.pth')
+
     except FileNotFoundError:
         print("Error: requirements.txt file not found.")
         sys.exit(1)
