@@ -5,6 +5,7 @@ import time
 import gdown
 
 ID_DESC_WEIGHTS = '1He7ELAxJM-RuKS9m4fOfvrtMmRuF-T4P'
+ID_DETECTION_WEIGHTS = '1R74s94WH-X8VdCLCDlgb0jWxL0FLvb73'
 
 def install_missing_dependencies():
     try:
@@ -27,6 +28,7 @@ def install_missing_dependencies():
             print("All dependencies are already installed.")
 
         gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DESC_WEIGHTS}',output='server/description/weights/best.pth')
+        gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DETECTION_WEIGHTS}',output='server/detection/checkpoints/best.pt')
 
     except FileNotFoundError:
         print("Error: requirements.txt file not found.")
