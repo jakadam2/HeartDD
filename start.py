@@ -6,6 +6,7 @@ import gdown
 
 ID_DESC_WEIGHTS = '1He7ELAxJM-RuKS9m4fOfvrtMmRuF-T4P'
 ID_DETECTION_WEIGHTS = '1R74s94WH-X8VdCLCDlgb0jWxL0FLvb73'
+ID_BINMASK = '1OFBtTf4SGWRGPSw0MOOyaF584q4iX2jC'
 
 def install_missing_dependencies():
     try:
@@ -29,6 +30,7 @@ def install_missing_dependencies():
 
         gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DESC_WEIGHTS}',output='server/description/weights/best.pth')
         gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DETECTION_WEIGHTS}',output='server/detection/checkpoints/best.pt')
+        gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_BINMASK}',output='base_images/good_df_newest.csv')
 
     except FileNotFoundError:
         print("Error: requirements.txt file not found.")
