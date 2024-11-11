@@ -32,8 +32,8 @@ def install_missing_dependencies():
         gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DETECTION_WEIGHTS}',output='server/detection/checkpoints/best.pt')
         gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_BINMASK}',output='base_images/good_df_newest.csv')
 
-    except FileNotFoundError:
-        print("Error: requirements.txt file not found.")
+    except FileNotFoundError as e:
+        print(f"Error: requirements.txt file not found. {e}")
         sys.exit(1)
     except Exception as e:
         print(f"An error occurred while checking/installing dependencies: {e}")

@@ -20,7 +20,9 @@ def detect_bounding_boxes(image: Image, mask: npt.ArrayLike) -> list[dict[str:fl
     # {x1:x1, y1:y1, x2:x2, y2:y2}
 
 def describe_bbox(image: Image, mask: npt.ArrayLike, bboxes: list[Union[int,int]]) -> list[dict[str:float]]:
-
+    print(f'Given bboxes:{bboxes}')
+    print(f'Given image:{image}')
+    print(f'Given mask:{mask}')
     describer = LesionDescriber()
     results = []
     pll = transforms.ToTensor()
