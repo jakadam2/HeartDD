@@ -29,13 +29,13 @@ class WindowController:
         self.canvas.pack()
 
         # Initialize buttons and connect to client methods
-        self.load_button = tk.Button(self.window, text="Load Image", command=self.load_action)
+        self.load_button = tk.Button(self.window, text="Load Image", command=self.on_load)
         self.load_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.detect_button = tk.Button(self.window, text="Detect Lesions", command=self.detect_action)
+        self.detect_button = tk.Button(self.window, text="Detect Lesions", command=self.on_detect)
         self.detect_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.describe_button = tk.Button(self.window, text="Describe Lesions", command=self.describe_action)
+        self.describe_button = tk.Button(self.window, text="Describe Lesions", command=self.on_describe)
         self.describe_button.pack(side=tk.LEFT, padx=5, pady=5)
 
     def display_image(self, image_tk):
@@ -46,14 +46,17 @@ class WindowController:
     def display_bboxes(self, bounding_boxes):
         for bbox in bounding_boxes:
             ResizableCanvasShape(self.canvas, bbox)
+
+    def display_confidence(self):
+        pass
     
-    def load_action(self):
+    def on_load(self):
         threading.Thread(target=self.client.load_file, daemon=True).start()
 
-    def detect_action(self):
+    def on_detect(self):
         threading.Thread(target=self.client.request_detect, daemon=True).start()
 
-    def describe_action(self):
+    def on_describe(self):
         threading.Thread(target=self.client.request_describe, daemon=True).start()
 
 
@@ -63,6 +66,7 @@ class Client:
         self.image_tk = None
         self.bitmask = None
         self.bounding_boxes = None
+        self.confidence_list = None
         self.queue = queue.Queue()
         self.shapes = []
 
@@ -84,10 +88,9 @@ class Client:
                 flag = self.queue.get_nowait()
                 match flag:
                     case Flag.DETECT:
-                        self.window_controller.display_bboxes(
-                            self.scalebboxes())
+                        self.window_controller.display_bboxes( self.scalebboxes() )
                     case Flag.DESCRIBE:
-                        self.display_confidence()  # Assuming a method to show confidence data
+                        self.window_controller.display_confidence()  # Assuming a method to show confidence data
                     case Flag.LOAD:
                         self.window_controller.display_image(self.image_tk)
                     case _:

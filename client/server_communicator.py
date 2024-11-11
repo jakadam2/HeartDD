@@ -87,7 +87,7 @@ class ServerHandler:
     def request_description(self, image: Image, mask: npt.ArrayLike, bbox):
         request = self.generate_description_request(image, mask, bbox)
         response = self.stub.GetDescription(request) 
-        if response.status.sucess == comms.Status.SUCCESS:
+        if response.status.success == comms.Status.SUCCESS:
             print(f"[CLIENT] Bounding box ({bbox[0]},{bbox[1]})  ({bbox[2]},{bbox[3]})")
             for conf in response.confidence_list:
                 print(f"{conf.name}:{conf.confidence}")
