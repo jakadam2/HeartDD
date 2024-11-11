@@ -14,17 +14,24 @@ import pandas as pd
 
 
 class FileHandler:
-    def __init__(self):
+    def __init__(self, name = ""):
         self.filename = ""
-        self.extention = ""
+        self.extension = ""
 
 
-    def load_file(self) -> Image:
-        name = askopenfilename()
+    def get_file_name(self, name=""):
+        if name == "":
+            name = askopenfilename()
+
         self.filename, self.extension = os.path.splitext(name)
         # Validate file extension
         if self.extension is None:
             raise ValueError("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
+        elif self.filename is None:
+            raise ValueError("No file has been loaded")
+
+
+    def load_file(self) -> Image:
 
         match self.extension:
             case ".dcm":
@@ -48,8 +55,6 @@ class FileHandler:
 
 
     def load_bitmask(self):
-        if self.filename == "":
-            raise ValueError("No file has been loaded")
         basename = os.path.basename(self.filename)
         # Parse the image_id and frame from the filename
         image_id, frame = basename.rsplit("_", 1)

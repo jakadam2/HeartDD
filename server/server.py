@@ -54,15 +54,15 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
             response = comms.DetectionResponse(status =status, coordinates_list = coordinates_list)
 
             #find bounding boxes, this is a placeholder
-            bounding_boxes = ep.detect_bounding_boxes(image = image, mask = mask)
-            
+            #bounding_boxes = ep.detect_bounding_boxes(image = image, mask = bit_mask)
+            bounding_boxes = self.return_test_bboxes()
             for box in bounding_boxes:
                 coordinates = comms.Coordinates(x1=box['x1'], y1=box['y1'], x2=box['x2'], y2=box['y2'])
                 response.coordinates_list.append(coordinates)
             ###################
 
         except Exception as ex:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            template = "1. An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print(message)
             return comms.DetectionResponse(
@@ -124,7 +124,7 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
             ###################
 
         except Exception as ex:
-            template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+            template = "2. An exception of type {0} occurred. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
             print(message)
             return comms.DetectionResponse(
@@ -136,7 +136,22 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
       
         return response
 
+    def return_test_bboxes(self):
+        image_width = 512
+        image_height = 512
 
+        # Generate two random bounding boxes within the 512x512 image dimensions
+        def random_box():
+            x1 = round(random.uniform(0, image_width - 1), 2)
+            y1 = round(random.uniform(0, image_height - 1), 2)
+            x2 = round(random.uniform(x1 + 1, image_width), 2)
+            y2 = round(random.uniform(y1 + 1, image_height), 2)
+            return {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
+
+        box1 = random_box()
+        box2 = random_box()
+
+        return [box1, box2]
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     comms_grpc.add_DetectionAndDescriptionServicer_to_server(DetectionAndDescriptionServicer(), server)

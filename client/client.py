@@ -11,6 +11,7 @@ import file_handler as fh
 import server_communicator as sch
 
 WIDTH, HEIGHT = 800, 800
+test_file = "/home/michal/Documents/Studia/Inzynierka/HeartDD/base_images/12aw4ack71831bocuf5j3pz235kn1v361de_33.png"
 
 class Flag(Enum):
     LOAD = 1
@@ -21,6 +22,7 @@ class Flag(Enum):
 
 class Client:
     def __init__(self, window):
+        self.image = None
         self.image_tk = None
         self.bitmask = None
         self.bounding_boxes = None
@@ -34,35 +36,18 @@ class Client:
         
         # Button to trigger the load action
         self.load_button = tk.Button(self.window, text="Load Image", command=self.load_action)
-        self.load_button.pack()
+        self.load_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.detect_button = tk.Button(self.window, text="Detect Lesions", command=self.detect_action)
+        self.detect_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+        self.describe_button = tk.Button(self.window, text="Describe Lesions", command=self.describe_action)
+        self.describe_button.pack(side=tk.LEFT, padx=5, pady=5)
 
         self.files = fh.FileHandler()
         self.server = sch.ServerHandler()
-        
+        self.load_file() 
         self.poll_queue()
-
-
-    def display_image(self):
-        print("display called")
-        # Convert to ImageTk.PhotoImage for displaying in Tkinter
-        self.canvas.delete("all")  # Clear existing items on the canvas
-        # Display the image on the canvas
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.image_tk)
-        # Update the canvas to ensure the image renders
-        self.canvas.update()
-
-
-    def load_action(self):
-        threading.Thread(target=self.load_file, daemon=True).start()
-
-    def load_file(self):
-        try:
-            image = self.files.load_file().resize((WIDTH, HEIGHT))
-            self.image_tk = ImageTk.PhotoImage(image)
-            self.bitmask = self.files.load_bitmask()
-            self.queue.put(Flag.LOAD)
-        except Exception as ex:
-            print(f"An exception of type {type(ex).__name__} occurred. Arguments:\n{ex.args}")
 
 
     def poll_queue(self):
@@ -71,9 +56,9 @@ class Client:
                 flag = self.queue.get_nowait()
                 match flag:
                     case Flag.DETECT:
-                        request_detection()
+                        self.display_bboxes()
                     case Flag.DESCRIBE:
-                        request_description()
+                        self.display_confidence()
                     case Flag.LOAD:
                         self.display_image()
                     case _:
@@ -83,13 +68,54 @@ class Client:
         except Exception as ex:
             print(f"An exception of type {type(ex).__name__} occurred. Arguments:\n{ex.args}")
         self.window.after(100, self.poll_queue)
+    
+
+    def display_image(self):
+        print("display called")
+        # Convert to ImageTk.PhotoImage for displaying in Tkinter
+        self.canvas.delete("all")  # Clear existing items on the canvas
+        # Display the image on the canvas
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.image_tk)
+        # Update the canvas to ensure the image renders
+        self.window.update()
 
 
-def request_detection():
-    pass
+    def load_action(self):
+        threading.Thread(target=self.load_file, daemon=True).start()
 
-def request_description():
-    pass
+    def load_file(self):
+        try:
+            #self.files.get_file_name()
+            self.files.get_file_name(name=test_file)
+            self.image = self.files.load_file()
+            self.image_tk = ImageTk.PhotoImage(self.image.resize((WIDTH, HEIGHT)))
+            self.bitmask = self.files.load_bitmask()
+            self.queue.put(Flag.LOAD)
+        except ValueError as ex:
+            print(f"An error occured while loading a file {ex.args}")
+
+
+    def detect_action(self):
+        threading.Thread(target=self.request_detect, daemon=True).start()
+
+    def request_detect(self):
+        if self.image is None:
+            print("No image loaded")
+            return
+        self.bounding_boxes = self.server.request_detection(self.image, self.bitmask)
+        self.queue.put(Flag.DETECT)
+
+    def describe_action(self):
+        threading.Thread(target=self.request_describe, daemon=True).start()
+
+    def request_describe(self):
+        if self.bounding_boxes is None:
+            print("No bounding boxes present")
+            return
+        for bbox in self.bounding_boxes:
+            self.server.request_description(self.image,self.bitmask, bbox)
+        self.queue.put(Flag.DESCRIBE)
+
 
 if __name__ == "__main__":
     root = tk.Tk()
