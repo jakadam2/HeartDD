@@ -1,13 +1,14 @@
 grpcio==1.66.2
 matplotlib==3.8.4
-numpy==2.1.2
+numpy==2.1.3
 opencv_python==4.10.0.84
 pandas==2.2.3
 Pillow==11.0.0
 protobuf==3.19.6
 pydicom==3.0.1
 scikit_learn==1.5.2
-skimage==0.0
+scipy==1.14.1
+scikit_image
 torch==2.5.0
 torchvision==0.20.0
 tqdm==4.66.5

@@ -74,7 +74,7 @@ class Client:
         self.server = sch.ServerHandler()
         
         # Load file and start polling for UI updates
-        self.load_file(test_file)
+        #self.load_file(test_file)
         self.poll_queue()
 
     def poll_queue(self):
