@@ -25,7 +25,6 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
             if mode == "description" and not coordinates:
                 coordinates = []
                 for coord in request.coords:
-                    print(f"[SERVER] {coord}")
                     coordinates.append({
                         "x1": coord.x1,
                         "y1": coord.y1,
@@ -63,7 +62,6 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
         try:
             image, bit_mask, width, height, coordinates = self.unpack_request(request_iterator, context)
             # Create and return the response
-            print(f"MASK: {bit_mask}, BBOXES: {coordinates}")
             coordinates_list = []
             status = comms.ResponseStatus(success = comms.Status.SUCCESS)
             response = comms.DetectionResponse(status =status, coordinates_list = coordinates_list)
@@ -116,7 +114,6 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
         try:
             image, bit_mask, width, height, coordinates = self.unpack_request(request_iterator, context, mode="description")
             # Create and return the response
-            print(f"[SERVER] MASK: {bit_mask}, BBOXES: {coordinates}")
             confidence_list = []
             status = comms.ResponseStatus(success = comms.Status.SUCCESS)
             response = comms.DescriptionResponse(status =status, confidence_list = confidence_list)

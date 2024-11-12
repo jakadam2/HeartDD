@@ -78,7 +78,7 @@ class Client:
         self.server = sch.ServerHandler()
         
         # Load file and start polling for UI updates
-        self.load_file(test_file)
+        #self.load_file(test_file)
         self.poll_queue()
 
     def poll_queue(self):
@@ -139,7 +139,6 @@ class Client:
         if self.bounding_boxes is None:
             print("[CLIENT] No bounding boxes present")
             return
-        print(f"[CLIENT] MASK: {self.bitmask}, BBOXES: {self.bounding_boxes}")
         self.server.request_description(self.image, self.bitmask, self.bounding_boxes)
         self.queue.put(Flag.DESCRIBE)
 

@@ -11,3 +11,8 @@ Otherwise use
 python client/client.py    - to start the client
 python server/server.py    - to start the server
 ```
+To make testing easier you can uncomment the 
+```python
+self.load_file(test_file)
+```
+line at the end of Client contructor in Client.py. This will automatically load a test file.
