@@ -68,7 +68,6 @@ class HDHOGLayer(nn.Module):
             )
             
             hog_features.append(hog_feature)
-        
         return torch.tensor(hog_features, dtype=torch.float32).to('cuda')
 
 

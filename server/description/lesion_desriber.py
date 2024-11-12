@@ -13,7 +13,9 @@ class LesionDescriber:
     def __init__(self):
         hog_layer = HDHOGLayer()
         self.model = HDModel(hog=hog_layer)
-        self.model.load_state_dict(torch.load('description/weights/best.pth'))
+        self.model.load_state_dict(torch.load('server/description/weights/best.pth'))
+        self.model.eval()
+        self.model = self.model.to('cuda')
 
     def __call__(self,image:torch.Tensor,mask:torch.Tensor,coords:Union[int,int]):
         return self.predict(image,mask,coords)
@@ -42,10 +44,14 @@ class LesionDescriber:
         bifurcation_prob = HDBifurcationPDF(mask.numpy())
         x,y = coords
         bif_prob = bifurcation_prob(x,y)
-        croped = image[int(x - 0.5*LesionDescriber.BOX_SIZE):int(x + 0.5*LesionDescriber.BOX_SIZE), 
-                       int(y - 0.5*LesionDescriber.BOX_SIZE):int(y + 0.5*LesionDescriber.BOX_SIZE)].unsqueeze(0)
-        prob = self.model(croped)
+        croped = image[:,int(x - 0.5*LesionDescriber.BOX_SIZE):int(x + 0.5*LesionDescriber.BOX_SIZE), 
+                       int(y - 0.5*LesionDescriber.BOX_SIZE):int(y + 0.5*LesionDescriber.BOX_SIZE)].unsqueeze(0).to('cuda')
+        
+        with torch.no_grad():
+            prob = self.model(croped)
 
+        prob = prob.squeeze()
+        
         return {
                 'BIFURCATION':bif_prob,
                 'AORTO_OSTIAL_STENOSIS':prob[0],
