@@ -11,7 +11,7 @@ from torchvision import transforms
 
 def detect_bounding_boxes(image: Image, mask: npt.ArrayLike) -> list[dict[str:float]]:
 
-    detector = LesionDetector(image)
+    detector = LesionDetector(image, mask)
     coordinates = detector.detect()
 
     return coordinates
