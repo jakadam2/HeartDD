@@ -24,29 +24,29 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0f\x64\x65tection.proto\x12\x17\x44\x65tectionAndDescription\"N\n\x10\x44\x65tectionRequest\x12\r\n\x05width\x18\x01 \x01(\x05\x12\x0e\n\x06height\x18\x02 \x01(\x05\x12\r\n\x05image\x18\x03 \x01(\x0c\x12\x0c\n\x04mask\x18\x04 \x01(\x0c\"\x86\x01\n\x12\x44\x65scriptionRequest\x12\x34\n\x06\x63oords\x18\x01 \x01(\x0b\x32$.DetectionAndDescription.Coordinates\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\r\n\x05image\x18\x04 \x01(\x0c\x12\x0c\n\x04mask\x18\x05 \x01(\x0c\"\x8c\x01\n\x11\x44\x65tectionResponse\x12\x37\n\x06status\x18\x01 \x01(\x0b\x32\'.DetectionAndDescription.ResponseStatus\x12>\n\x10\x63oordinates_list\x18\x02 \x03(\x0b\x32$.DetectionAndDescription.Coordinates\"\x8c\x01\n\x13\x44\x65scriptionResponse\x12\x37\n\x06status\x18\x01 \x01(\x0b\x32\'.DetectionAndDescription.ResponseStatus\x12<\n\x0f\x63onfidence_list\x18\x02 \x03(\x0b\x32#.DetectionAndDescription.Confidence\"=\n\x0b\x43oordinates\x12\n\n\x02x1\x18\x01 \x01(\x02\x12\n\n\x02y1\x18\x02 \x01(\x02\x12\n\n\x02x2\x18\x03 \x01(\x02\x12\n\n\x02y2\x18\x04 \x01(\x02\".\n\nConfidence\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x12\n\nconfidence\x18\x02 \x01(\x02\"l\n\x0eResponseStatus\x12\x30\n\x07success\x18\x01 \x01(\x0e\x32\x1f.DetectionAndDescription.Status\x12\x18\n\x0b\x65rr_message\x18\x02 \x01(\tH\x00\x88\x01\x01\x42\x0e\n\x0c_err_message*\"\n\x06Status\x12\x0b\n\x07SUCCESS\x10\x00\x12\x0b\n\x07\x46\x41ILURE\x10\x01\x32\xf5\x01\n\x17\x44\x65tectionAndDescription\x12k\n\x10GetBoundingBoxes\x12).DetectionAndDescription.DetectionRequest\x1a*.DetectionAndDescription.DetectionResponse(\x01\x12m\n\x0eGetDescription\x12+.DetectionAndDescription.DescriptionRequest\x1a,.DetectionAndDescription.DescriptionResponse(\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0f\x64\x65tection.proto\"N\n\x10\x44\x65tectionRequest\x12\r\n\x05width\x18\x01 \x01(\x05\x12\x0e\n\x06height\x18\x02 \x01(\x05\x12\r\n\x05image\x18\x03 \x01(\x0c\x12\x0c\n\x04mask\x18\x04 \x01(\x0c\"n\n\x12\x44\x65scriptionRequest\x12\x1c\n\x06\x63oords\x18\x01 \x03(\x0b\x32\x0c.Coordinates\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\r\n\x05image\x18\x04 \x01(\x0c\x12\x0c\n\x04mask\x18\x05 \x01(\x0c\"\\\n\x11\x44\x65tectionResponse\x12\x1f\n\x06status\x18\x01 \x01(\x0b\x32\x0f.ResponseStatus\x12&\n\x10\x63oordinates_list\x18\x02 \x03(\x0b\x32\x0c.Coordinates\"\\\n\x13\x44\x65scriptionResponse\x12\x1f\n\x06status\x18\x01 \x01(\x0b\x32\x0f.ResponseStatus\x12$\n\x0f\x63onfidence_list\x18\x02 \x03(\x0b\x32\x0b.Confidence\"=\n\x0b\x43oordinates\x12\n\n\x02x1\x18\x01 \x01(\x02\x12\n\n\x02y1\x18\x02 \x01(\x02\x12\n\n\x02x2\x18\x03 \x01(\x02\x12\n\n\x02y2\x18\x04 \x01(\x02\".\n\nConfidence\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x12\n\nconfidence\x18\x02 \x01(\x02\"T\n\x0eResponseStatus\x12\x18\n\x07success\x18\x01 \x01(\x0e\x32\x07.Status\x12\x18\n\x0b\x65rr_message\x18\x02 \x01(\tH\x00\x88\x01\x01\x42\x0e\n\x0c_err_message*\"\n\x06Status\x12\x0b\n\x07SUCCESS\x10\x00\x12\x0b\n\x07\x46\x41ILURE\x10\x01\x32\x95\x01\n\x17\x44\x65tectionAndDescription\x12;\n\x10GetBoundingBoxes\x12\x11.DetectionRequest\x1a\x12.DetectionResponse(\x01\x12=\n\x0eGetDescription\x12\x13.DescriptionRequest\x1a\x14.DescriptionResponse(\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'detection_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_STATUS']._serialized_start=768
-  _globals['_STATUS']._serialized_end=802
-  _globals['_DETECTIONREQUEST']._serialized_start=44
-  _globals['_DETECTIONREQUEST']._serialized_end=122
-  _globals['_DESCRIPTIONREQUEST']._serialized_start=125
-  _globals['_DESCRIPTIONREQUEST']._serialized_end=259
-  _globals['_DETECTIONRESPONSE']._serialized_start=262
-  _globals['_DETECTIONRESPONSE']._serialized_end=402
-  _globals['_DESCRIPTIONRESPONSE']._serialized_start=405
-  _globals['_DESCRIPTIONRESPONSE']._serialized_end=545
-  _globals['_COORDINATES']._serialized_start=547
-  _globals['_COORDINATES']._serialized_end=608
-  _globals['_CONFIDENCE']._serialized_start=610
-  _globals['_CONFIDENCE']._serialized_end=656
-  _globals['_RESPONSESTATUS']._serialized_start=658
-  _globals['_RESPONSESTATUS']._serialized_end=766
-  _globals['_DETECTIONANDDESCRIPTION']._serialized_start=805
-  _globals['_DETECTIONANDDESCRIPTION']._serialized_end=1050
+  _globals['_STATUS']._serialized_start=596
+  _globals['_STATUS']._serialized_end=630
+  _globals['_DETECTIONREQUEST']._serialized_start=19
+  _globals['_DETECTIONREQUEST']._serialized_end=97
+  _globals['_DESCRIPTIONREQUEST']._serialized_start=99
+  _globals['_DESCRIPTIONREQUEST']._serialized_end=209
+  _globals['_DETECTIONRESPONSE']._serialized_start=211
+  _globals['_DETECTIONRESPONSE']._serialized_end=303
+  _globals['_DESCRIPTIONRESPONSE']._serialized_start=305
+  _globals['_DESCRIPTIONRESPONSE']._serialized_end=397
+  _globals['_COORDINATES']._serialized_start=399
+  _globals['_COORDINATES']._serialized_end=460
+  _globals['_CONFIDENCE']._serialized_start=462
+  _globals['_CONFIDENCE']._serialized_end=508
+  _globals['_RESPONSESTATUS']._serialized_start=510
+  _globals['_RESPONSESTATUS']._serialized_end=594
+  _globals['_DETECTIONANDDESCRIPTION']._serialized_start=633
+  _globals['_DETECTIONANDDESCRIPTION']._serialized_end=782
 # @@protoc_insertion_point(module_scope)

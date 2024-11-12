@@ -31,10 +31,12 @@ class ServerHandler:
         return bounding_boxes
     
 
-    def generate_description_request(self, image: Image, mask: npt.ArrayLike, bbox: npt.ArrayLike):
+    def generate_description_request(self, image: Image, mask: npt.ArrayLike, bboxes: npt.ArrayLike):
         try:
             height, width, pixel_data, mask_data, num_chunks = self.prepare_request_data(image, mask)
-            coordinates = comms.Coordinates(x1=bbox[0], y1=bbox[1], x2=bbox[2], y2=bbox[3])
+            coordinate_list = []
+            for bbox in bboxes:
+                 coordinate_list.append(comms.Coordinates(x1=bbox[0], y1=bbox[1], x2=bbox[2], y2=bbox[3]))
             for i in range(num_chunks):
                 start = i * CHUNK_SIZE
                 end = start + CHUNK_SIZE
@@ -42,7 +44,7 @@ class ServerHandler:
                             height = height, width = width, 
                             image = pixel_data[start:end],
                             mask = mask_data[start:end],
-                            coords = coordinates)
+                            coords = coordinate_list)
         except Exception as ex:
             print(f"[CLIENT] An exception of type {type(ex).__name__} occurred. Arguments:\n{ex.args}")
 
@@ -84,8 +86,8 @@ class ServerHandler:
             raise ValueError(response.ResponseStatus.err_message)
 
 
-    def request_description(self, image: Image, mask: npt.ArrayLike, bbox):
-        request = self.generate_description_request(image, mask, bbox)
+    def request_description(self, image: Image, mask: npt.ArrayLike, bboxes: npt.ArrayLike):
+        request = self.generate_description_request(image, mask, bboxes)
         response = self.stub.GetDescription(request) 
         if response.status.success == comms.Status.SUCCESS:
             print(f"[CLIENT] Bounding box ({bbox[0]},{bbox[1]})  ({bbox[2]},{bbox[3]})")

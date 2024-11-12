@@ -32,12 +32,12 @@ class DescriptionRequest(_message.Message):
     HEIGHT_FIELD_NUMBER: _ClassVar[int]
     IMAGE_FIELD_NUMBER: _ClassVar[int]
     MASK_FIELD_NUMBER: _ClassVar[int]
-    coords: Coordinates
+    coords: _containers.RepeatedCompositeFieldContainer[Coordinates]
     width: int
     height: int
     image: bytes
     mask: bytes
-    def __init__(self, coords: _Optional[_Union[Coordinates, _Mapping]] = ..., width: _Optional[int] = ..., height: _Optional[int] = ..., image: _Optional[bytes] = ..., mask: _Optional[bytes] = ...) -> None: ...
+    def __init__(self, coords: _Optional[_Iterable[_Union[Coordinates, _Mapping]]] = ..., width: _Optional[int] = ..., height: _Optional[int] = ..., image: _Optional[bytes] = ..., mask: _Optional[bytes] = ...) -> None: ...
 
 class DetectionResponse(_message.Message):
     __slots__ = ("status", "coordinates_list")

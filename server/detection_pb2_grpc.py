@@ -35,12 +35,12 @@ class DetectionAndDescriptionStub(object):
             channel: A grpc.Channel.
         """
         self.GetBoundingBoxes = channel.stream_unary(
-                '/DetectionAndDescription.DetectionAndDescription/GetBoundingBoxes',
+                '/DetectionAndDescription/GetBoundingBoxes',
                 request_serializer=detection__pb2.DetectionRequest.SerializeToString,
                 response_deserializer=detection__pb2.DetectionResponse.FromString,
                 _registered_method=True)
         self.GetDescription = channel.stream_unary(
-                '/DetectionAndDescription.DetectionAndDescription/GetDescription',
+                '/DetectionAndDescription/GetDescription',
                 request_serializer=detection__pb2.DescriptionRequest.SerializeToString,
                 response_deserializer=detection__pb2.DescriptionResponse.FromString,
                 _registered_method=True)
@@ -76,9 +76,9 @@ def add_DetectionAndDescriptionServicer_to_server(servicer, server):
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'DetectionAndDescription.DetectionAndDescription', rpc_method_handlers)
+            'DetectionAndDescription', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
-    server.add_registered_method_handlers('DetectionAndDescription.DetectionAndDescription', rpc_method_handlers)
+    server.add_registered_method_handlers('DetectionAndDescription', rpc_method_handlers)
 
 
  # This class is part of an EXPERIMENTAL API.
@@ -99,7 +99,7 @@ class DetectionAndDescription(object):
         return grpc.experimental.stream_unary(
             request_iterator,
             target,
-            '/DetectionAndDescription.DetectionAndDescription/GetBoundingBoxes',
+            '/DetectionAndDescription/GetBoundingBoxes',
             detection__pb2.DetectionRequest.SerializeToString,
             detection__pb2.DetectionResponse.FromString,
             options,
@@ -126,7 +126,7 @@ class DetectionAndDescription(object):
         return grpc.experimental.stream_unary(
             request_iterator,
             target,
-            '/DetectionAndDescription.DetectionAndDescription/GetDescription',
+            '/DetectionAndDescription/GetDescription',
             detection__pb2.DescriptionRequest.SerializeToString,
             detection__pb2.DescriptionResponse.FromString,
             options,

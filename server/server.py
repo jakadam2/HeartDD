@@ -17,22 +17,24 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
     def unpack_request(self, request_iterator, context, mode="detection"):
         image_data = io.BytesIO()  # To accumulate image bytes
         mask_data = io.BytesIO()
-        width = None
-        height = None
-        coordinates = []
+        width = 0
+        height = 0
+        coordinates = None
 
         for request in request_iterator:
-            if mode == "description":
-                if not coordinates:
-                    coordinates = [
-                        request.coords.x1,
-                        request.coords.y1,
-                        request.coords.x2,
-                        request.coords.y2
-                    ]
-            if not width:
+            if mode == "description" and not coordinates:
+                coordinates = []
+                for coord in request.coords:
+                    print(f"[SERVER] {coord}")
+                    coordinates.append({
+                        "x1": coord.x1,
+                        "y1": coord.y1,
+                        "x2": coord.x2,
+                        "y2": coord.y2
+                    })
+            if width == 0:
                 width = request.width
-            if not height:
+            if height == 0:
                 height = request.height
             
             # Write the incoming image bytes to the BytesIO object
@@ -49,6 +51,8 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
             pixel_array = pixel_array.reshape((height, width))  # Reshape to 3D array
             image = Image.fromarray(pixel_array)
             return image, bit_mask, width, height, coordinates
+        except TypeError as ex:
+            raise TypeError(ex.args)
         except Exception as ex:
             raise ValueError(ex.args)
 
@@ -59,6 +63,7 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
         try:
             image, bit_mask, width, height, coordinates = self.unpack_request(request_iterator, context)
             # Create and return the response
+            print(f"MASK: {bit_mask}, BBOXES: {coordinates}")
             coordinates_list = []
             status = comms.ResponseStatus(success = comms.Status.SUCCESS)
             response = comms.DetectionResponse(status =status, coordinates_list = coordinates_list)
@@ -70,6 +75,26 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
                 coordinates = comms.Coordinates(x1=box['x1'], y1=box['y1'], x2=box['x2'], y2=box['y2'])
                 response.coordinates_list.append(coordinates)
             ###################
+
+        except ValueError as ex:
+            message = f"[SERVER] \n{ex.args}"
+            print(message)
+            return comms.DetectionResponse(
+                comms.ResponseStatus(
+                    success = comms.Status.FAILURE,
+                    err_message = "Something went wrong"
+                ),
+                coordinates_list = [])
+
+        except TypeError as ex:
+            message = f"[SERVER] \n{ex.args}"
+            print(message)
+            return comms.DetectionResponse(
+                comms.ResponseStatus(
+                    success = comms.Status.FAILURE,
+                    err_message = "Something went wrong"
+                ),
+                coordinates_list = [])
 
         except Exception as ex:
             template = "[SERVER] An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -89,8 +114,9 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
         print("[SERVER] Description request inboud")
         response = None
         try:
-            image, bit_mask, width, height, coordinates = self.unpack_request(request_iterator, context)
+            image, bit_mask, width, height, coordinates = self.unpack_request(request_iterator, context, mode="description")
             # Create and return the response
+            print(f"[SERVER] MASK: {bit_mask}, BBOXES: {coordinates}")
             confidence_list = []
             status = comms.ResponseStatus(success = comms.Status.SUCCESS)
             response = comms.DescriptionResponse(status =status, confidence_list = confidence_list)
@@ -101,9 +127,8 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
                 response.confidence_list.append(confidence)
             ###################
 
-        except Exception as ex:
-            template = "[SERVER] An exception of type {0} occurred. Arguments:\n{1!r}"
-            message = template.format(type(ex).__name__, ex.args)
+        except ValueError as ex:
+            message = f"[SERVER] \n{ex.args}"
             print(message)
             return comms.DetectionResponse(
                 comms.ResponseStatus(
@@ -111,7 +136,17 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
                     err_message = "Something went wrong"
                 ),
                 coordinates_list = [])
-      
+
+        except TypeError as ex:
+            message = f"[SERVER] \n{ex.args}"
+            print(message)
+            return comms.DetectionResponse(
+                comms.ResponseStatus(
+                    success = comms.Status.FAILURE,
+                    err_message = "Something went wrong"
+                ),
+                coordinates_list = [])
+        
         return response
 
     def return_test_bboxes(self):
