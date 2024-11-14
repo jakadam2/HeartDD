@@ -90,8 +90,11 @@ class ServerHandler:
         request = self.generate_description_request(image, mask, bboxes)
         response = self.stub.GetDescription(request) 
         if response.status.success == comms.Status.SUCCESS:
-            print(f"[CLIENT] Bounding box ({bbox[0]},{bbox[1]})  ({bbox[2]},{bbox[3]})")
-            for conf in response.confidence_list:
-                print(f"{conf.name}:{conf.confidence}")
+            # Iterate over each Confidence object in the response
+            for idx, conf in enumerate(response.confidence_list):
+                print(f"[CLIENT] Bounding box ({bboxes[idx][0]}, {bboxes[idx][1]})  ({bboxes[idx][2]}, {bboxes[idx][3]})")
+                # For each Confidence, iterate over the entries list
+                for entry in conf.entries:
+                    print(f"{entry.name}: {entry.confidence}")
         else:   
             raise ValueError(response.ResponseStatus.err_message)

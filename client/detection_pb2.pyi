@@ -68,6 +68,12 @@ class Coordinates(_message.Message):
     def __init__(self, x1: _Optional[float] = ..., y1: _Optional[float] = ..., x2: _Optional[float] = ..., y2: _Optional[float] = ...) -> None: ...
 
 class Confidence(_message.Message):
+    __slots__ = ("entries",)
+    ENTRIES_FIELD_NUMBER: _ClassVar[int]
+    entries: _containers.RepeatedCompositeFieldContainer[ConfidenceEntry]
+    def __init__(self, entries: _Optional[_Iterable[_Union[ConfidenceEntry, _Mapping]]] = ...) -> None: ...
+
+class ConfidenceEntry(_message.Message):
     __slots__ = ("name", "confidence")
     NAME_FIELD_NUMBER: _ClassVar[int]
     CONFIDENCE_FIELD_NUMBER: _ClassVar[int]

@@ -73,6 +73,7 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
                 coordinates = comms.Coordinates(x1=box['x1'], y1=box['y1'], x2=box['x2'], y2=box['y2'])
                 response.coordinates_list.append(coordinates)
             ###################
+            return response
 
         except ValueError as ex:
             message = f"[SERVER] \n{ex.args}"
@@ -105,7 +106,6 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
                 ),
                 coordinates_list = [])
       
-        return response
 
  
     def GetDescription(self, request_iterator, context):
@@ -120,8 +120,14 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
 
             confidences = ep.describe_bbox(image = image,mask = bit_mask, bboxes = coordinates)
             for description in confidences:
-                confidence = comms.Confidence(name=description["name"], confidence=description["confidence"])
-                response.confidence_list.append(confidence)
+                entries = []
+                for key, value in description.items():
+                    print(f"[DEBUG] {key}:{value}")
+                    entry = comms.ConfidenceEntry(name=key, confidence=value)
+                    entries.append(entry)
+            confidence = comms.Confidence(entries = entries)
+            response.confidence_list.append(confidence)
+            return response
             ###################
 
         except ValueError as ex:
@@ -144,7 +150,6 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
                 ),
                 coordinates_list = [])
         
-        return response
 
     def return_test_bboxes(self):
         image_width = 512
