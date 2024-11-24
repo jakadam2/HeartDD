@@ -7,15 +7,12 @@ class LesionDetector:
 
     def __init__(self, image, mask=None):
         self.model_path = './checkpoints/best.pt'
-        # If Pillow Image transform to numpy
+        # Pillow Image transform to numpy
         if isinstance(image, Image.Image):
             image = np.array(image)
-            image = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
+            if len(image.shape) == 2:  # Convert only if grayscale
+                image = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
         self.image = image
-        # If Pillow Image transform to numpy
-        if isinstance(mask, Image.Image):
-            mask = np.array(mask)
-            mask = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
         self.mask = mask
 
     @staticmethod
@@ -31,7 +28,8 @@ class LesionDetector:
         if self.mask is not None:
             self.image = self.cover_image(self.image, self.mask)
             dilated_mask = cv.dilate(self.mask, kernel=np.ones((5, 5)), iterations=10)
-            dilated_mask = cv.cvtColor(dilated_mask, cv.COLOR_BGR2GRAY)
+            if len(dilated_mask) == 3: # Convert if BGR
+                dilated_mask = cv.cvtColor(dilated_mask, cv.COLOR_BGR2GRAY)
 
         model = torch.hub.load('ultralytics/yolov5', 'custom', path=self.model_path)
         results = model(self.image)
