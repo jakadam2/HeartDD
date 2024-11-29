@@ -1,7 +1,6 @@
 import os
 import sys
 from tkinter.filedialog import askopenfilename
-from pathlib import Path
 
 root_dir = os.path.join(os.path.dirname(__file__), "..")
 sys.path.append(os.path.abspath(root_dir))
@@ -11,13 +10,13 @@ import preprocessing.mask_to_pixel as preprocessing
 import pydicom as dicom
 from PIL import Image
 import pandas as pd
+import numpy as np
 
 
 class FileHandler:
-    def __init__(self, name = ""):
+    def __init__(self):
         self.filename = ""
         self.extension = ""
-
 
     def get_file_name(self, name=None):
         if name is None:
@@ -29,7 +28,6 @@ class FileHandler:
             raise ValueError("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
         elif self.filename is None:
             raise ValueError("No file has been loaded")
-
 
     def load_file(self) -> Image:
 
@@ -53,7 +51,6 @@ class FileHandler:
 
         return image
 
-
     def load_bitmask(self):
         basename = os.path.basename(self.filename)
         # Parse the image_id and frame from the filename
@@ -66,7 +63,7 @@ class FileHandler:
         df = pd.read_csv(MASK_FILE)
         # Filter rows with the correct image_id
         image_rows = df[df['image_id'] == image_id]
-        
+
         if image_rows.empty:
             raise ValueError(f"No entry found for image_id {image_id} in the CSV file.")
         # Check if the exact frame exists

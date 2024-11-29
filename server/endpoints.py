@@ -1,5 +1,5 @@
-#THIS IS THE FILE USED TO IMPLEMENT ENDPOINTS TO INTERACT WITH MODELS
-#REPLACE THESE FUNCTIONS WITH WHATEVER YOU NEED
+# THIS IS THE FILE USED TO IMPLEMENT ENDPOINTS TO INTERACT WITH MODELS
+# REPLACE THESE FUNCTIONS WITH WHATEVER YOU NEED
 from description.lesion_desriber import LesionDescriber
 from detection.detect import LesionDetector
 
@@ -9,8 +9,8 @@ from typing import Union
 
 from torchvision import transforms
 
-def detect_bounding_boxes(image: Image, mask: npt.ArrayLike) -> list[dict[str:float]]:
 
+def detect_bounding_boxes(image: Image, mask: npt.ArrayLike) -> list[dict[str:float]]:
     detector = LesionDetector(image, mask)
     coordinates = detector.detect()
 
@@ -19,7 +19,8 @@ def detect_bounding_boxes(image: Image, mask: npt.ArrayLike) -> list[dict[str:fl
     # It returns positions of the bounding boxes in format
     # {x1:x1, y1:y1, x2:x2, y2:y2}
 
-def describe_bbox(image: Image, mask: npt.ArrayLike, bboxes: list[Union[int,int]]) -> list[dict[str:float]]:
+
+def describe_bbox(image: Image, mask: npt.ArrayLike, bboxes: list[Union[int, int]]) -> list[dict[str:float]]:
     describer = LesionDescriber()
     results = []
     pll = transforms.ToTensor()
@@ -27,7 +28,7 @@ def describe_bbox(image: Image, mask: npt.ArrayLike, bboxes: list[Union[int,int]
     mask_tensor = pll(mask)
 
     for bbox in bboxes:
-        coords = ((bbox['x1'] + bbox['x2'])//2,(bbox['y1'] + bbox['y2'])//2)
-        results.append(describer(image_tensor,mask_tensor,coords))
+        coords = ((bbox['x1'] + bbox['x2']) // 2, (bbox['y1'] + bbox['y2']) // 2)
+        results.append(describer(image_tensor, mask_tensor, coords))
 
     return results

@@ -1,18 +1,20 @@
-import sys
 import os
 from enum import Enum
-import tkinter as tk
-from PIL import Image, ImageTk
-import threading
-import time
+from PIL import ImageTk
 import queue
-import numpy.typing as npt
 import file_handler as fh
 import server_communicator as sch
-from testing.box_test3 import ResizableCanvasShape
+import window_controller as wc
 
+try:
+    import tkinter as tk
+except ImportError:
+    import Tkinter as tk
+
+root_dir = os.path.join(os.path.dirname(__file__), "..")
+TEST_FILE = os.path.join(os.path.abspath(root_dir), 'base_images', '12aw4ack71831bocuf5j3pz235kn1v361de_33.png')
 WIDTH, HEIGHT = 700, 700
-test_file = "/home/michal/Documents/Studia/Inzynierka/HeartDD/base_images/12aw4ack71831bocuf5j3pz235kn1v361de_33.png"
+
 
 class Flag(Enum):
     LOAD = 1
@@ -21,85 +23,30 @@ class Flag(Enum):
     EXIT = 4
     NOTHING = 5
 
-class WindowController:
-    def __init__(self, window, client):
-
-        self.window = window
-        self.client = client  # Reference to Client class to call application methods
-
-        self.window.title("Lesion Detection")
-        #self.window.maxsize(1000, 700)
-        self.window.config(bg = "skyblue")
-
-        self.image_frame = tk.Frame(self.window, width = WIDTH, height = HEIGHT, bg = 'grey')
-        self.image_frame.grid(row = 0, column = 1, padx = 5, pady = 5)
-        self.canvas = tk.Canvas(self.image_frame,  width = WIDTH, height = HEIGHT, bg='white')
-        #self.canvas.grid(row=0, column = 0)
-        self.canvas.pack(padx = 5, pady=5)
-
-        self.confidence_frame = tk.Frame(self.window, width = 400, height = 500)
-        self.confidence_frame.grid(row = 0, column = 0, padx = 5, pady = 5)
-
-
-        self.button_frame = tk.Frame(self.window, width = 250, height = 250)
-        self.button_frame.grid(row = 1, column = 0, padx =5, pady=5)
-
-        # Initialize buttons and connect to client methods
-        self.load_button = tk.Button(self.button_frame, text="Load Image", command=self.on_load)
-        self.load_button.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.detect_button = tk.Button(self.button_frame, text="Detect Lesions", command=self.on_detect)
-        self.detect_button.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.describe_button = tk.Button(self.button_frame, text="Describe Lesions", command=self.on_describe)
-        self.describe_button.pack(side=tk.LEFT, padx=5, pady=5)
-
-        self.image_tk = None
-
-    def display_image(self, image_tk):
-        self.image_tk = image_tk
-        self.canvas.delete("all")
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=image_tk)
-        self.canvas.image = self.image_tk
-        self.window.update()
-
-    def display_bboxes(self, bounding_boxes):
-        for bbox in bounding_boxes:
-            ResizableCanvasShape(self.canvas, bbox)
-
-    def display_confidence(self):
-        pass
-    
-    def on_load(self):
-        threading.Thread(target=self.client.load_file, daemon=True).start()
-
-    def on_detect(self):
-        threading.Thread(target=self.client.request_detect, daemon=True).start()
-
-    def on_describe(self):
-        threading.Thread(target=self.client.request_describe, daemon=True).start()
-
 
 class Client:
-    def __init__(self, window):
+    def __init__(self):
         self.image = None
         self.image_tk = None
         self.bitmask = None
         self.bounding_boxes = None
+        self.scaled_bboxes = None
         self.confidence_list = None
         self.queue = queue.Queue()
         self.shapes = []
 
+        root = tk.Tk()
         # Initialize WindowController for window-related tasks
-        self.window_controller = WindowController(window, self)
-        
+        self.window_controller = wc.WindowController(self, root)
+
         # Initialize file handler and server communicator
         self.files = fh.FileHandler()
         self.server = sch.ServerHandler()
-        
+
         # Load file and start polling for UI updates
-        #self.load_file(test_file)
+        self.load_file(TEST_FILE)
         self.poll_queue()
+        root.mainloop()
 
     def poll_queue(self):
         """Poll queue for updates and perform actions based on flags."""
@@ -108,9 +55,10 @@ class Client:
                 flag = self.queue.get_nowait()
                 match flag:
                     case Flag.DETECT:
-                        self.window_controller.display_bboxes( self.scalebboxes() )
+                        self.window_controller.display_bboxes(self.scalebboxes())
                     case Flag.DESCRIBE:
-                        self.window_controller.display_confidence()  # Assuming a method to show confidence data
+                        self.window_controller.display_confidence(self.bounding_boxes,
+                                                                  self.confidence_list)
                     case Flag.LOAD:
                         self.window_controller.display_image(self.image_tk)
                     case _:
@@ -119,24 +67,24 @@ class Client:
             pass
         except Exception as ex:
             print(f"[CLIENT] An exception of type {type(ex).__name__} occurred. Arguments:\n{ex.args}")
-        
+
         # Continue polling every 100 ms
         self.window_controller.window.after(100, self.poll_queue)
 
     def scalebboxes(self):
         img_width, img_height = self.image.size
         scaling_ratio = WIDTH / img_width
-        scaled_bboxes = []
+        self.scaled_bboxes = []
         for bbox in self.bounding_boxes:
-            scaled_bboxes.append([ 
+            self.scaled_bboxes.append([
                 bbox[0] * scaling_ratio,
                 bbox[1] * scaling_ratio,
                 bbox[2] * scaling_ratio,
                 bbox[3] * scaling_ratio
             ])
-        return scaled_bboxes
+        return self.scaled_bboxes
 
-    def load_file(self, name=None):
+    def load_file(self, name: str = None):
         try:
             self.files.get_file_name(name)
             self.image = self.files.load_file()
@@ -144,9 +92,9 @@ class Client:
             self.bitmask = self.files.load_bitmask()
         except ValueError as ex:
             print(f"[CLIENT] An error occurred while loading a file {ex.args}")
+        except FileNotFoundError:
+            print(f"Couldn't find file {self.files}")
         self.queue.put(Flag.LOAD)
-
-
 
     def request_detect(self):
         if self.image is None:
@@ -154,7 +102,6 @@ class Client:
             return
         self.bounding_boxes = self.server.request_detection(self.image, self.bitmask)
         self.queue.put(Flag.DETECT)
-
 
     def request_describe(self):
         if self.bounding_boxes is None:
@@ -165,9 +112,7 @@ class Client:
 
 
 def start():
-    root = tk.Tk()
-    client = Client(root)
-    root.mainloop()
+    Client()
 
 
 if __name__ == "__main__":

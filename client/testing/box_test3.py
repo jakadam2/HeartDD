@@ -3,7 +3,7 @@ from PIL import Image, ImageTk, ImageDraw
 
 
 class ResizableCanvasShape:
-    def __init__(self, canvas, bbox,  border_color="red", border_width=3):
+    def __init__(self, canvas, bbox, border_color="red", border_width=3):
         """
       retialize the ResizeableCanvasShape.
 
@@ -13,7 +13,7 @@ class ResizableCanvasShape:
         :param border_width: Width of the rectangle border
         """
         self.canvas = canvas
-        self.x1, self.y1, self.x2, self.y2 = bbox[0],bbox[1], bbox[2], bbox[3]
+        self.x1, self.y1, self.x2, self.y2 = bbox[0], bbox[1], bbox[2], bbox[3]
         self.border_color = border_color
         self.border_width = border_width
         self.image = self._create_transparent_image()
@@ -26,7 +26,7 @@ class ResizableCanvasShape:
             self.x1, self.y1, self.x2, self.y2, outline=self.border_color, width=self.border_width
         )
         self.is_resizing = False
-        self.is_moving = False
+        self.selected = False
         self.start_x = None
         self.start_y = None
         self.resize_side = None
@@ -98,7 +98,7 @@ class ResizableCanvasShape:
         """
         Handle moving the rectangle.
         """
-        if not self.is_moving:
+        if not self.selected:
             return
 
         dx = event.x - self.start_x
@@ -168,5 +168,5 @@ class ResizableCanvasShape:
         Reset state after mouse release.
         """
         self.is_resizing = False
-        self.is_moving = False
+        self.selected = False
         self.resize_side = None
