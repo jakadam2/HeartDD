@@ -120,7 +120,6 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
             for description in confidences:
                 entries = []
                 for key, value in description.items():
-                    print(f"[DEBUG] {key}:{value}")
                     entry = comms.ConfidenceEntry(name=key, confidence=value)
                     entries.append(entry)
             confidence = comms.Confidence(entries=entries)

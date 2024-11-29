@@ -91,6 +91,11 @@ class ServerHandler:
         response = self.stub.GetDescription(request) 
         if response.status.success == comms.Status.SUCCESS:
             # Iterate over each Confidence object in the response
+            for idx, conf in enumerate(response.confidence_list):
+                print(f"[CLIENT] Bounding box ({bboxes[idx][0]}, {bboxes[idx][1]})  ({bboxes[idx][2]}, {bboxes[idx][3]})")
+                # For each Confidence, iterate over the entries list
+                for entry in conf.entries:
+                    print(f"{entry.name}: {entry.confidence}")
             return response.confidence_list
         else:   
             raise ValueError(response.ResponseStatus.err_message)

@@ -58,7 +58,7 @@ class Client:
                         self.window_controller.display_bboxes(self.scalebboxes())
                     case Flag.DESCRIBE:
                         self.window_controller.display_confidence(self.bounding_boxes,
-                                                                  self.confidence_list)
+                                                                  self.confidence_list[0])
                     case Flag.LOAD:
                         self.window_controller.display_image(self.image_tk)
                     case _:
@@ -107,7 +107,7 @@ class Client:
         if self.bounding_boxes is None:
             print("[CLIENT] No bounding boxes present")
             return
-        self.server.request_description(self.image, self.bitmask, self.bounding_boxes)
+        self.confidence_list = self.server.request_description(self.image, self.bitmask, self.bounding_boxes)
         self.queue.put(Flag.DESCRIBE)
 
 

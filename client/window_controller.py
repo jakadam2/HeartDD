@@ -49,14 +49,14 @@ class WindowController:
         for bbox in bounding_boxes:
             ResizableCanvasShape(self.canvas, bbox)
 
-    def display_confidence(self, bboxes: list[list], confidence_list: dict):
-        for idx, key, value in enumerate(confidence_list):
-            name = tk.Entry(self.confidence_frame, text=str(key), fg="black",
-                            font=("Arial", 16, 'bold'))
-            value = tk.Entry(self.confidence_frame, text=str(value), fg="black",
-                             font=("Arial", 16, 'bold'))
+    def display_confidence(self, bboxes: list[list], confidence: dict):
+        for idx, entry in enumerate(confidence.entries):
+            name = tk.Entry(self.confidence_frame, font=("Arial", 12, "bold"))
+            value = tk.Entry(self.confidence_frame, font=("Arial",12, "bold"))
             name.grid(row=idx, column=0)
             value.grid(row=idx, column=1)
+            name.insert(tk.END, str(entry.name))
+            value.insert(tk.END, str(round(entry.confidence, 4)))
 
     def on_load(self):
         threading.Thread(target=self.client.load_file, daemon=True).start()
