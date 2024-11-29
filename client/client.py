@@ -9,9 +9,9 @@ import queue
 import numpy.typing as npt
 import file_handler as fh
 import server_communicator as sch
-from testing.box_test2 import ResizableCanvasShape
+from testing.box_test3 import ResizableCanvasShape
 
-WIDTH, HEIGHT = 800, 800
+WIDTH, HEIGHT = 700, 700
 test_file = "/home/michal/Documents/Studia/Inzynierka/HeartDD/base_images/12aw4ack71831bocuf5j3pz235kn1v361de_33.png"
 
 class Flag(Enum):
@@ -23,24 +23,44 @@ class Flag(Enum):
 
 class WindowController:
     def __init__(self, window, client):
+
         self.window = window
         self.client = client  # Reference to Client class to call application methods
-        self.canvas = tk.Canvas(window, width=WIDTH, height=HEIGHT)
-        self.canvas.pack()
+
+        self.window.title("Lesion Detection")
+        #self.window.maxsize(1000, 700)
+        self.window.config(bg = "skyblue")
+
+        self.image_frame = tk.Frame(self.window, width = WIDTH, height = HEIGHT, bg = 'grey')
+        self.image_frame.grid(row = 0, column = 1, padx = 5, pady = 5)
+        self.canvas = tk.Canvas(self.image_frame,  width = WIDTH, height = HEIGHT, bg='white')
+        #self.canvas.grid(row=0, column = 0)
+        self.canvas.pack(padx = 5, pady=5)
+
+        self.confidence_frame = tk.Frame(self.window, width = 400, height = 500)
+        self.confidence_frame.grid(row = 0, column = 0, padx = 5, pady = 5)
+
+
+        self.button_frame = tk.Frame(self.window, width = 250, height = 250)
+        self.button_frame.grid(row = 1, column = 0, padx =5, pady=5)
 
         # Initialize buttons and connect to client methods
-        self.load_button = tk.Button(self.window, text="Load Image", command=self.on_load)
+        self.load_button = tk.Button(self.button_frame, text="Load Image", command=self.on_load)
         self.load_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.detect_button = tk.Button(self.window, text="Detect Lesions", command=self.on_detect)
+        self.detect_button = tk.Button(self.button_frame, text="Detect Lesions", command=self.on_detect)
         self.detect_button.pack(side=tk.LEFT, padx=5, pady=5)
 
-        self.describe_button = tk.Button(self.window, text="Describe Lesions", command=self.on_describe)
+        self.describe_button = tk.Button(self.button_frame, text="Describe Lesions", command=self.on_describe)
         self.describe_button.pack(side=tk.LEFT, padx=5, pady=5)
 
+        self.image_tk = None
+
     def display_image(self, image_tk):
+        self.image_tk = image_tk
         self.canvas.delete("all")
         self.canvas.create_image(0, 0, anchor=tk.NW, image=image_tk)
+        self.canvas.image = self.image_tk
         self.window.update()
 
     def display_bboxes(self, bounding_boxes):
@@ -78,7 +98,7 @@ class Client:
         self.server = sch.ServerHandler()
         
         # Load file and start polling for UI updates
-        self.load_file(test_file)
+        #self.load_file(test_file)
         self.poll_queue()
 
     def poll_queue(self):
@@ -122,9 +142,10 @@ class Client:
             self.image = self.files.load_file()
             self.image_tk = ImageTk.PhotoImage(self.image.resize((WIDTH, HEIGHT)))
             self.bitmask = self.files.load_bitmask()
-            self.queue.put(Flag.LOAD)
         except ValueError as ex:
             print(f"[CLIENT] An error occurred while loading a file {ex.args}")
+        self.queue.put(Flag.LOAD)
+
 
 
     def request_detect(self):

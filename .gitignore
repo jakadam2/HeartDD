@@ -5,4 +5,5 @@
 *.pth
 *.ipynb
 /base_images
+test*.py
 dataset.csv
