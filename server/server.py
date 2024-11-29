@@ -67,8 +67,8 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
             response = comms.DetectionResponse(status=status, coordinates_list=coordinates_list)
 
             # find bounding boxes, this is a placeholder
-            # bounding_boxes = ep.detect_bounding_boxes(image, bit_mask)
-            bounding_boxes = self.return_test_bboxes()
+            bounding_boxes = ep.detect_bounding_boxes(image, bit_mask)
+            #bounding_boxes = self.return_test_bboxes()
             for box in bounding_boxes:
                 coordinates = comms.Coordinates(x1=box['x1'], y1=box['y1'], x2=box['x2'], y2=box['y2'])
                 response.coordinates_list.append(coordinates)
