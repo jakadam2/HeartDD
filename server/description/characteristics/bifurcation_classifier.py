@@ -6,6 +6,8 @@ from server.description.characteristics import CharacteristicClassifier
 
 class BifurcationClassifier(CharacteristicClassifier):
 
+
+
     kernels = [
     np.array([[1,0,1],
              [0,1,0],
@@ -55,7 +57,7 @@ class BifurcationClassifier(CharacteristicClassifier):
              [1,1,0],
              [0,1,0]],np.uint8)]
     
-    cov = [[900,0],[0,900]]
+    sigma = 50
     
     def __init__(self, mask:np.ndarray):
         super().__init__()
@@ -63,8 +65,14 @@ class BifurcationClassifier(CharacteristicClassifier):
         self._find_bifurcations()
 
     def predict(self, x:int, y:int) -> bool:
-        pass
+        return max([prob(x,y) for prob in self.bifurcations])
     
+    def _create_prob(self, x:int, y:int):
+        def flattened_distribution(x0, y0):
+            distance_squared = (x - x0)**2 + (y - y0)**2
+            return 1 / (1 + (distance_squared / (BifurcationClassifier.sigma**2)))
+        return flattened_distribution
+
     def _prune_skeleton(self, skeleton, min_branch_length=20):
         skeleton = skeleton.astype(np.uint8)
         neighbors = [(-1, -1), (-1, 0), (-1, 1),
@@ -115,8 +123,10 @@ class BifurcationClassifier(CharacteristicClassifier):
        results = np.zeros(shape = self.skeletonized_mask.shape,dtype=bool)
        for kernel in BifurcationClassifier.kernels:
            detections = cv.erode(self.skeletonized_mask,kernel,iterations=1) > 0
-           results = detections|results
+           results = detections | results
        
        coords = np.where(results == 1)
-       self.bifurcations = coords
-       return set(coords)
+       self.coords = coords
+       probs = {self._create_prob(x,y) for x,y in coords}
+       self.bifurcations = probs
+       return probs
