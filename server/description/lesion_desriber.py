@@ -31,12 +31,12 @@ class LesionDescriber:
 
             results.append({
                 'BIFURCATION':bif_prob,
-                'AORTO_OSTIAL_STENOSIS':prob[0],
-                'BLUNT_STUMP':prob[1],
-                'BRIDGING':prob[2],
-                'HEAVY_CALCIFICATION':prob[3],
-                'SEVERE_TORTUOSITY':prob[4], 
-                'THROMBUS':prob[5],
+                'AORTO_OSTIAL_STENOSIS':torch.sigmoid(prob[0]),
+                'BLUNT_STUMP':torch.sigmoid(prob[1]),
+                'BRIDGING':torch.sigmoid(prob[2]),
+                'HEAVY_CALCIFICATION':torch.sigmoid(prob[3]),
+                'SEVERE_TORTUOSITY':torch.sigmoid(prob[4]), 
+                'THROMBUS':torch.sigmoid(prob[5]),
             })
         return results
     
@@ -54,12 +54,12 @@ class LesionDescriber:
         
         return {
                 'BIFURCATION':bif_prob,
-                'AORTO_OSTIAL_STENOSIS':prob[0],
-                'BLUNT_STUMP':prob[1],
-                'BRIDGING':prob[2],
-                'HEAVY_CALCIFICATION':prob[3],
-                'SEVERE_TORTUOSITY':prob[4], 
-                'THROMBUS':prob[5],
+                'AORTO_OSTIAL_STENOSIS':torch.sigmoid(prob[0]),
+                'BLUNT_STUMP':torch.sigmoid(prob[1]),
+                'BRIDGING':torch.sigmoid(prob[2]),
+                'HEAVY_CALCIFICATION':torch.sigmoid(prob[3]),
+                'SEVERE_TORTUOSITY':torch.sigmoid(prob[4]), 
+                'THROMBUS':torch.sigmoid(prob[5]),
             }
 
         
