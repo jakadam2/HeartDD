@@ -3,10 +3,19 @@ import numpy as np
 import cv2 as cv
 from PIL import Image
 
+import platform
+import pathlib
+
+
 class LesionDetector:
 
     def __init__(self, image, mask=None):
-        self.model_path = './checkpoints/best.pt'
+
+        if platform.system() == 'Windows':
+            pathlib.PosixPath = pathlib.WindowsPath
+        else:
+            pathlib.WindowsPath = pathlib.PosixPath
+        self.model_path = pathlib.Path('./server/detection/checkpoints/best.pt')
         # Pillow Image transform to numpy
         if isinstance(image, Image.Image):
             image = np.array(image)
@@ -31,7 +40,7 @@ class LesionDetector:
             if len(dilated_mask) == 3: # Convert if BGR
                 dilated_mask = cv.cvtColor(dilated_mask, cv.COLOR_BGR2GRAY)
 
-        model = torch.hub.load('ultralytics/yolov5', 'custom', path=self.model_path)
+        model = torch.hub.load('ultralytics/yolov5', 'custom', path=self.model_path, force_reload = True)
         results = model(self.image)
         coordinates = []
 
