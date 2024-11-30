@@ -1,4 +1,5 @@
 import os
+import sys
 from enum import Enum
 from PIL import ImageTk
 import queue
@@ -15,7 +16,6 @@ root_dir = os.path.join(os.path.dirname(__file__), "..")
 TEST_FILE = os.path.join(os.path.abspath(root_dir), 'base_images', '12aw4ack71831bocuf5j3pz235kn1v361de_33.png')
 WIDTH, HEIGHT = 700, 700
 
-
 class Flag(Enum):
     LOAD = 1
     DETECT = 2
@@ -23,9 +23,8 @@ class Flag(Enum):
     EXIT = 4
     NOTHING = 5
 
-
 class Client:
-    def __init__(self):
+    def __init__(self, ip: str = "localhost", port: str = "50051"):
         self.image = None
         self.image_tk = None
         self.bitmask = None
@@ -33,7 +32,7 @@ class Client:
         self.scaled_bboxes = None
         self.confidence_list = None
         self.queue = queue.Queue()
-        self.shapes = []
+
 
         root = tk.Tk()
         # Initialize WindowController for window-related tasks
@@ -41,7 +40,7 @@ class Client:
 
         # Initialize file handler and server communicator
         self.files = fh.FileHandler()
-        self.server = sch.ServerHandler()
+        self.server = sch.ServerHandler(ip, port)
 
         # Load file and start polling for UI updates
         self.load_file(TEST_FILE)
@@ -57,8 +56,7 @@ class Client:
                     case Flag.DETECT:
                         self.window_controller.display_bboxes(self.scalebboxes())
                     case Flag.DESCRIBE:
-                        self.window_controller.display_confidence(self.bounding_boxes,
-                                                                  self.confidence_list[0])
+                        self.display_confidence()
                     case Flag.LOAD:
                         self.window_controller.display_image(self.image_tk)
                     case _:
@@ -108,11 +106,22 @@ class Client:
             print("[CLIENT] No bounding boxes present")
             return
         self.confidence_list = self.server.request_description(self.image, self.bitmask, self.bounding_boxes)
+        for confidence in self.confidence_list:
+            print(f"{confidence}")
         self.queue.put(Flag.DESCRIBE)
+    
+    def display_confidence(self) -> None:
+        self.window_controller.display_confidence(self.confidence_list)
+
 
 
 def start():
-    Client()
+    if len(sys.argv) <= 2:
+        Client()
+    else:
+        ip = sys.argv[1]
+        port = sys.argv[2]
+        Client(ip, port)
 
 
 if __name__ == "__main__":

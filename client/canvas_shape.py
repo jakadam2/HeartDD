@@ -1,9 +1,12 @@
 from tkinter import Canvas, Tk
 from PIL import Image, ImageTk, ImageDraw
 
+BORDER_COLOR = "red"
+SELECTED_COLOR = "yellow"
+BORDER_WIDTH = 3
 
 class ResizableCanvasShape:
-    def __init__(self, canvas, bbox, border_color="red", border_width=3):
+    def __init__(self,controller, canvas, bbox):
         """
       retialize the ResizeableCanvasShape.
 
@@ -12,18 +15,23 @@ class ResizableCanvasShape:
         :param border_color: Color of the rectangle border
         :param border_width: Width of the rectangle border
         """
+        self.controller = controller
         self.canvas = canvas
         self.x1, self.y1, self.x2, self.y2 = bbox[0], bbox[1], bbox[2], bbox[3]
-        self.border_color = border_color
-        self.border_width = border_width
         self.image = self._create_transparent_image()
 
         self.image_tk = ImageTk.PhotoImage(self.image)
         self.rectangle = self.canvas.create_image(
-            self.x1, self.y1, anchor="nw", image=self.image_tk
+            self.x1, self.y1, 
+            anchor="nw", 
+            image=self.image_tk, 
+            tags="square"
         )
         self.border = self.canvas.create_rectangle(
-            self.x1, self.y1, self.x2, self.y2, outline=self.border_color, width=self.border_width
+            self.x1, self.y1, self.x2, self.y2, 
+            outline=BORDER_COLOR, 
+            width=BORDER_WIDTH, 
+            tags="square"
         )
         self.is_resizing = False
         self.selected = False
@@ -32,6 +40,7 @@ class ResizableCanvasShape:
         self.resize_side = None
 
         self._bind_events()
+
 
     def _create_transparent_image(self):
         """
@@ -55,20 +64,28 @@ class ResizableCanvasShape:
         """
         Bind events to handle movement and resizing.
         """
-        self.canvas.tag_bind(self.rectangle, "<Button-1>", self.on_move_start)
-        self.canvas.tag_bind(self.border, "<Button-1>", self.on_resize_start)
+        self.canvas.tag_bind(self.rectangle, "<Button-1>", self.on_select)
+        #self.canvas.tag_bind(self.border, "<Button-1>", self.on_resize_start)
         self.canvas.tag_bind(self.rectangle, "<B1-Motion>", self.on_move)
-        self.canvas.tag_bind(self.border, "<B1-Motion>", self.on_resize)
+        #self.canvas.tag_bind(self.border, "<B1-Motion>", self.on_resize)
         self.canvas.tag_bind(self.rectangle, "<ButtonRelease-1>", self.on_action_end)
-        self.canvas.tag_bind(self.border, "<ButtonRelease-1>", self.on_action_end)
+        #self.canvas.tag_bind(self.border, "<ButtonRelease-1>", self.on_action_end)
 
-    def on_move_start(self, event):
+    def select(self):
+        self.selected = True
+        self.canvas.itemconfig(self.border, outline = SELECTED_COLOR)
+    
+    def deselect(self):
+        self.selected = False
+        self.canvas.itemconfig(self.border, outline = BORDER_COLOR)
+
+    def on_select(self, event):
         """
         Start moving the rectangle.
         """
-        self.selected = True
         self.start_x = event.x
         self.start_y = event.y
+        self.controller.select(self)
 
     def on_resize_start(self, event):
         """
@@ -156,10 +173,14 @@ class ResizableCanvasShape:
         self.image = self._create_transparent_image()
         self.image_tk = ImageTk.PhotoImage(self.image)
         self.rectangle = self.canvas.create_image(
-            self.x1, self.y1, anchor="nw", image=self.image_tk
+            self.x1, self.y1, 
+            anchor="nw", 
+            image=self.image_tk
         )
         self.border = self.canvas.create_rectangle(
-            self.x1, self.y1, self.x2, self.y2, outline=self.border_color, width=self.border_width
+            self.x1, self.y1, self.x2, self.y2, 
+            outline=BORDER_COLOR, 
+            width=BORDER_WIDTH
         )
         self._bind_events()
 
@@ -168,5 +189,8 @@ class ResizableCanvasShape:
         Reset state after mouse release.
         """
         self.is_resizing = False
-        self.selected = False
         self.resize_side = None
+    
+    def clear(self):
+        self.canvas.delete(self.border)
+        self.canvas.delete(self.rectangle)

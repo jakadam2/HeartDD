@@ -58,14 +58,14 @@ def start_services():
 
     # Start the server process
     server_process = subprocess.Popen([sys.executable, server_script])
-    print("Server started.")
+    print("Server starting...")
 
     # Optional delay to allow the server to initialize
-    time.sleep(1)
+    time.sleep(2)
 
     # Start the client process
     client_process = subprocess.Popen([sys.executable, client_script])
-    print("Client started.")
+    print("Client starting...")
 
     # Wait for both processes to complete
     server_process.wait()
