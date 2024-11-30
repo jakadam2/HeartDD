@@ -57,7 +57,7 @@ class BifurcationClassifier(CharacteristicClassifier):
              [1,1,0],
              [0,1,0]],np.uint8)]
     
-    sigma = 50
+    sigma = 100
     
     def __init__(self, mask:np.ndarray):
         super().__init__()
@@ -65,7 +65,7 @@ class BifurcationClassifier(CharacteristicClassifier):
         self._find_bifurcations()
 
     def predict(self, x:int, y:int) -> bool:
-        return max([prob(x,y) for prob in self.bifurcations])
+        return max([prob(x,y) for prob in self.bifurcations]) if len(self.bifurcations) > 0 else 0
     
     def _create_prob(self, x:int, y:int):
         def flattened_distribution(x0, y0):
@@ -127,6 +127,6 @@ class BifurcationClassifier(CharacteristicClassifier):
        
        coords = np.where(results == 1)
        self.coords = coords
-       probs = {self._create_prob(x,y) for x,y in coords}
+       probs = {self._create_prob(x,y) for x,y in zip(list(coords[0]),(coords[1]))}
        self.bifurcations = probs
        return probs

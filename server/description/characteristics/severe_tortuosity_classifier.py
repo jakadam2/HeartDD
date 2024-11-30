@@ -15,7 +15,7 @@ class SevereTortuosityClassifier(CharacteristicClassifier):
         self.curvature_threshold = curvature_threshold
 
     def predict(self) -> bool:
-        return True if len(self._detect_curves()) > 0 else False
+        return True if len(self._detect_curves()) > 1 else False
  
     def _detect_curves(self) -> set[Union[int,int]]:
         binary = self.mask.astype(np.uint8)
@@ -33,6 +33,6 @@ class SevereTortuosityClassifier(CharacteristicClassifier):
                     continue
                 curvature = num / den
                 if curvature > self.curvature_threshold:
-                    curves.add(p2)
+                    curves.add(tuple(p2))
         return curves
             
