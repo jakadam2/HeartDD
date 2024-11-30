@@ -171,9 +171,9 @@ def train(model, train_loader, val_loader, criterion, optimizer, num_epochs, run
 
 
 if __name__ == '__main__':
-    num_epochs = 15
+    num_epochs = 50
     batch_size = 32
-    learning_rate = 0.001
+    learning_rate = 0.0005
 
     annotations_file = pd.read_csv('./../../datasets/final_df.csv') 
     img_dir = './../../datasets/images/raw'
