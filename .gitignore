@@ -7,3 +7,4 @@
 /base_images
 test*.py
 dataset.csv
+*.csv
