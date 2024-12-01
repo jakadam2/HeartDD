@@ -8,7 +8,7 @@ from PIL import Image
 from typing import Union
 
 
-from server.description.characteristics import CharacteristicClassifier
+from description.characteristics import CharacteristicClassifier
 
 class TotalOclusionClassifier(CharacteristicClassifier):
 
@@ -19,16 +19,16 @@ class TotalOclusionClassifier(CharacteristicClassifier):
         self.model:SVC = joblib.load(model_path)
 
     def predict(self, image:np.ndarray, coords:Union[int,int]):
+        print(type(image))
         x,y = coords
-        image = Image.fromarray(image)
         croped = image.crop((x, y, x + TotalOclusionClassifier.BOX_SIZE, y + TotalOclusionClassifier.BOX_SIZE))
         hog_features = self._extract_hog_features(croped)
-        return self.model.predict(hog_features)
+        return self.model.predict([hog_features])[0]
 
+    @staticmethod
     def _extract_hog_features(image):
-        gray_image = rgb2gray(np.array(image)) 
         features = hog(
-            gray_image,
+            image,
             orientations=9,
             pixels_per_cell=(8, 8),
             cells_per_block=(2, 2),

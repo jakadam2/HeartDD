@@ -1,7 +1,8 @@
 import torch
 
-from description.skeletonization import HDBifurcationPDF
-from description.layers import HDModel,HDHOGLayer
+# from description.skeletonization import HDBifurcationPDF
+# from description.layers import HDModel,HDHOGLayer
+from description.characteristics import *
 
 from typing import Union
 
@@ -11,55 +12,34 @@ class LesionDescriber:
     BOX_SIZE = 55
 
     def __init__(self):
-        hog_layer = HDHOGLayer()
-        self.model = HDModel(hog=hog_layer)
-        self.model.load_state_dict(torch.load('server/description/weights/best.pth'))
-        self.model.eval()
-        self.model = self.model.to('cuda')
+        self.blunt_stump = BluntStumpClassifier(model_path = 'server/description/weights/blunt_stump_model.pkl')
+        self.heavy_calcification = HeavyCalcificationClassifier(model_path = 'server/description/weights/hc_model.pkl')
+        self.thrombus = ThrombusClassifier(model_path = 'server/description/weights/thrombus_model.pkl')
+        self.total_oclusion = TotalOclusionClassifier(model_path = 'server/description/weights/total_oclusion_model.pkl')
 
     def __call__(self,image:torch.Tensor,mask:torch.Tensor,coords:Union[int,int]):
-        return self.predict(image,mask,coords)
-    
-    def predict_list(self,image:torch.Tensor,mask:torch.Tensor,coords:list[Union[int,int]]) -> list[Union[str,float]]:
-        bifurcation_prob = HDBifurcationPDF(mask.numpy())
-        results = []
-        for x,y in coords:
-            bif_prob = bifurcation_prob(x,y)
-            croped = image[int(x - 0.5*LesionDescriber.BOX_SIZE):int(x + 0.5*LesionDescriber.BOX_SIZE), 
-                           int(y - 0.5*LesionDescriber.BOX_SIZE):int(y + 0.5*LesionDescriber.BOX_SIZE)].unsqueeze(0)
-            prob = self.model(croped)
-
-            results.append({
-                'BIFURCATION':bif_prob,
-                'AORTO_OSTIAL_STENOSIS':torch.sigmoid(prob[0]),
-                'BLUNT_STUMP':torch.sigmoid(prob[1]),
-                'BRIDGING':torch.sigmoid(prob[2]),
-                'HEAVY_CALCIFICATION':torch.sigmoid(prob[3]),
-                'SEVERE_TORTUOSITY':torch.sigmoid(prob[4]), 
-                'THROMBUS':torch.sigmoid(prob[5]),
-            })
-        return results
+        return self.predict(image,mask,coords)   
     
     def predict(self,image:torch.Tensor,mask:torch.Tensor,coords:Union[int,int]) -> dict[str:float]:
-        bifurcation_prob = HDBifurcationPDF(mask.numpy())
-        x,y = coords
-        bif_prob = bifurcation_prob(x,y)
-        croped = image[:,int(x - 0.5*LesionDescriber.BOX_SIZE):int(x + 0.5*LesionDescriber.BOX_SIZE), 
-                       int(y - 0.5*LesionDescriber.BOX_SIZE):int(y + 0.5*LesionDescriber.BOX_SIZE)].unsqueeze(0).to('cuda')
+        # bifurcation_prob = HDBifurcationPDF(mask.numpy())
+        bifurcation_prob = BifurcationClassifier(mask)(*coords)
+        turtosity_prob = SevereTortuosityClassifier(mask,5,0.3)()
+        # croped = image[:,int(x - 0.5*LesionDescriber.BOX_SIZE):int(x + 0.5*LesionDescriber.BOX_SIZE), 
+        #                int(y - 0.5*LesionDescriber.BOX_SIZE):int(y + 0.5*LesionDescriber.BOX_SIZE)].unsqueeze(0).to('cuda')
         
-        with torch.no_grad():
-            prob = self.model(croped)
+        # with torch.no_grad():
+        #     prob = self.model(croped)
 
-        prob = prob.squeeze()
+        # prob = prob.squeeze()
         
         return {
-                'BIFURCATION':bif_prob,
-                'AORTO_OSTIAL_STENOSIS':torch.sigmoid(prob[0]),
-                'BLUNT_STUMP':torch.sigmoid(prob[1]),
-                'BRIDGING':torch.sigmoid(prob[2]),
-                'HEAVY_CALCIFICATION':torch.sigmoid(prob[3]),
-                'SEVERE_TORTUOSITY':torch.sigmoid(prob[4]), 
-                'THROMBUS':torch.sigmoid(prob[5]),
+                'BIFURCATION':bifurcation_prob,
+                'AORTO_OSTIAL_STENOSIS': 0,
+                'BLUNT_STUMP':self.blunt_stump(image,coords),
+                'TOTAL_OCLUSION':self.total_oclusion(image,coords),
+                'HEAVY_CALCIFICATION':self.heavy_calcification(image,coords),
+                'SEVERE_TORTUOSITY':turtosity_prob, 
+                'THROMBUS':self.thrombus(image,coords),
             }
 
         

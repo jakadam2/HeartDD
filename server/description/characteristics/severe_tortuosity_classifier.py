@@ -4,7 +4,7 @@ from skimage.morphology import skeletonize
 
 from typing import Union
 
-from server.description.characteristics import CharacteristicClassifier
+from description.characteristics import CharacteristicClassifier
 
 class SevereTortuosityClassifier(CharacteristicClassifier):
 

@@ -2,7 +2,7 @@ import numpy as np
 import cv2 as cv
 from skimage.morphology import skeletonize
 
-from server.description.characteristics import CharacteristicClassifier
+from description.characteristics import CharacteristicClassifier
 
 class BifurcationClassifier(CharacteristicClassifier):
 
