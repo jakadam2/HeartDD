@@ -4,3 +4,4 @@ from .bifurcation_classifier import BifurcationClassifier
 from .thrombus_classifier import ThrombusClassifier
 from .heavy_calcification_classifier import HeavyCalcificationClassifier
 from .total_oclusion import TotalOclusionClassifier
+from .blunt_stump_classifier import BluntStumpClassifier
