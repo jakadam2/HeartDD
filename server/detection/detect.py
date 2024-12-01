@@ -15,7 +15,7 @@ class LesionDetector:
             pathlib.PosixPath = pathlib.WindowsPath
         else:
             pathlib.WindowsPath = pathlib.PosixPath
-        self.model_path = pathlib.Path('./server/detection/checkpoints/best.pt')
+        self.model_path = pathlib.Path('./server/detection/checkpoints/best_new.pt')
         # Pillow Image transform to numpy
         if isinstance(image, Image.Image):
             image = np.array(image)
@@ -35,7 +35,7 @@ class LesionDetector:
 
     def detect(self):
         if self.mask is not None:
-            self.image = self.cover_image(self.image, self.mask)
+            #self.image = self.cover_image(self.image, self.mask)
             dilated_mask = cv.dilate(self.mask, kernel=np.ones((5, 5)), iterations=10)
             if len(dilated_mask) == 3: # Convert if BGR
                 dilated_mask = cv.cvtColor(dilated_mask, cv.COLOR_BGR2GRAY)
