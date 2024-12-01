@@ -22,8 +22,7 @@ class BluntStumpClassifier(CharacteristicClassifier):
         x,y = coords
         croped = image.crop((x, y, x + BluntStumpClassifier.BOX_SIZE, y + BluntStumpClassifier.BOX_SIZE))
         hog_features = self._extract_hog_features(croped)
-        return self.model.predict([hog_features])[0]
-
+        return self.model.predict_proba([hog_features])[0][1]
     @staticmethod
     def _extract_hog_features(image):
         features = hog(

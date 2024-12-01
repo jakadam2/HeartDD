@@ -22,7 +22,7 @@ class ThrombusClassifier(CharacteristicClassifier):
         x,y = coords
         croped = image.crop((x, y, x + ThrombusClassifier.BOX_SIZE, y + ThrombusClassifier.BOX_SIZE))
         hog_features = self._extract_hog_features(croped)
-        return self.model.predict([hog_features])[0]
+        return self.model.predict_proba([hog_features])[0][1]
 
     @staticmethod
     def _extract_hog_features(image):

@@ -12,10 +12,10 @@ class LesionDescriber:
     BOX_SIZE = 55
 
     def __init__(self):
-        self.blunt_stump = BluntStumpClassifier(model_path = 'server/description/weights/blunt_stump_model.pkl')
-        self.heavy_calcification = HeavyCalcificationClassifier(model_path = 'server/description/weights/hc_model.pkl')
-        self.thrombus = ThrombusClassifier(model_path = 'server/description/weights/thrombus_model.pkl')
-        self.total_oclusion = TotalOclusionClassifier(model_path = 'server/description/weights/total_oclusion_model.pkl')
+        self.blunt_stump = BluntStumpClassifier(model_path = 'server/description/weights/blunt_stump_prob_model.pkl')
+        self.heavy_calcification = HeavyCalcificationClassifier(model_path = 'server/description/weights/hc_prob_model.pkl')
+        self.thrombus = ThrombusClassifier(model_path = 'server/description/weights/thrombus_prob_model.pkl')
+        self.total_oclusion = TotalOclusionClassifier(model_path = 'server/description/weights/total_oclusion_prob_model.pkl')
 
     def __call__(self,image:torch.Tensor,mask:torch.Tensor,coords:Union[int,int]):
         return self.predict(image,mask,coords)   
