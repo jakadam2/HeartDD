@@ -11,6 +11,7 @@ import pydicom as dicom
 from PIL import Image
 import pandas as pd
 import numpy as np
+from error_window import ErrorWindow
 
 
 class FileHandler:
@@ -25,7 +26,7 @@ class FileHandler:
         self.filename, self.extension = os.path.splitext(name)
         # Validate file extension
         if self.extension is None:
-            raise ValueError("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
+            ErrorWindow.show("Incorrect format", "Incorrect file format, all files should have a .png, .jpg or .dcm extension")
         elif self.filename is None:
             raise ValueError("No file has been loaded")
 
@@ -36,6 +37,9 @@ class FileHandler:
                 # Load DICOM file and convert to PIL Image
                 file = dicom.dcmread(self.filename + self.extension)
                 pixel_array = file.pixel_array  # Get pixel array from the DICOM file
+                if len(pixel_array) > 1:
+                    print("More than 1 picture in file, taking the first one")
+                    pixel_array = pixel_array[0]
 
                 # Normalize the pixel data and convert it to uint8 for display (if needed)
                 pixel_array = (pixel_array - np.min(pixel_array)) / (np.max(pixel_array) - np.min(pixel_array)) * 255
@@ -47,6 +51,7 @@ class FileHandler:
                 # Load PNG/JPG file directly as PIL Image
                 image = Image.open(self.filename + self.extension)
             case _:
+                ErrorWindow.show("Incorrect format", "Incorrect file format, all files should have a .png, .jpg or .dcm extension")
                 raise ValueError("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
 
         return image

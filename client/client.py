@@ -1,3 +1,7 @@
+LOAD = False
+
+
+
 import os
 import sys
 from enum import Enum
@@ -6,6 +10,7 @@ import queue
 import file_handler as fh
 import server_communicator as sch
 import window_controller as wc
+from error_window import ErrorWindow
 
 try:
     import tkinter as tk
@@ -32,7 +37,7 @@ class Client:
         self.scaled_bboxes = None
         self.confidence_list = None
         self.queue = queue.Queue()
-
+        self.scaling_ratio = 1
 
         root = tk.Tk()
         # Initialize WindowController for window-related tasks
@@ -42,8 +47,9 @@ class Client:
         self.files = fh.FileHandler()
         self.server = sch.ServerHandler(ip, port)
 
-        # Load file and start polling for UI updates
-        self.load_file(TEST_FILE)
+        if LOAD:
+            # Load file and start polling for UI updates
+            self.load_file(TEST_FILE)
         self.poll_queue()
         root.mainloop()
 
@@ -71,15 +77,16 @@ class Client:
 
     def scalebboxes(self):
         img_width, img_height = self.image.size
-        scaling_ratio = WIDTH / img_width
+        self.scaling_ratio = WIDTH / img_width
         self.scaled_bboxes = []
         for bbox in self.bounding_boxes:
             self.scaled_bboxes.append([
-                bbox[0] * scaling_ratio,
-                bbox[1] * scaling_ratio,
-                bbox[2] * scaling_ratio,
-                bbox[3] * scaling_ratio
+                bbox[0] * self.scaling_ratio,
+                bbox[1] * self.scaling_ratio,
+                bbox[2] * self.scaling_ratio,
+                bbox[3] * self.scaling_ratio
             ])
+        print(f"Boxes: {self.bounding_boxes}\n Scaled boxes: {self.scaled_bboxes}")
         return self.scaled_bboxes
 
     def load_file(self, name: str = None):
@@ -96,14 +103,17 @@ class Client:
 
     def request_detect(self):
         if self.image is None:
-            print("[CLIENT] No image loaded")
+            ErrorWindow.show("No image", "Please load an image you want to use")
             return
         self.bounding_boxes = self.server.request_detection(self.image, self.bitmask)
         self.queue.put(Flag.DETECT)
 
     def request_describe(self):
-        if self.bounding_boxes is None:
-            print("[CLIENT] No bounding boxes present")
+        if self.image is None:
+            ErrorWindow.show("No image", "Please load an image you want to use")
+            return
+        elif self.bounding_boxes is None:
+            ErrorWindow.show("No boxes", "Please use \"Detect Lesions\" option before")
             return
         self.confidence_list = self.server.request_description(self.image, self.bitmask, self.bounding_boxes)
         for confidence in self.confidence_list:
@@ -113,7 +123,15 @@ class Client:
     def display_confidence(self) -> None:
         self.window_controller.display_confidence(self.confidence_list)
 
-
+    def move_bbox(self, x1: int, y1: int, x2: int, y2: int, index: int):
+        reverse_scaling_ratio = 1 / self.scaling_ratio
+        #print(f"Scaling ratio {self.scaling_ratio}, Reverse scaling {reverse_scaling_ratio}")
+        #print(f"Before scaling:{self.bounding_boxes[index]}")
+        self.bounding_boxes[index][0] = x1 * reverse_scaling_ratio
+        self.bounding_boxes[index][1] = y1 * reverse_scaling_ratio
+        self.bounding_boxes[index][2] = x2 * reverse_scaling_ratio
+        self.bounding_boxes[index][3] = y2 * reverse_scaling_ratio
+        print(f"After scaling:{self.bounding_boxes[index]}")
 
 def start():
     if len(sys.argv) <= 2:

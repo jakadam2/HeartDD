@@ -16,6 +16,7 @@ class WindowController:
         self.client = client  # Reference to Client class to call application methods
         self.selected_idx = 0;
         self.boxes = []
+        self.conf = [] 
 
 
         self.window.title("Lesion Detection")
@@ -75,15 +76,19 @@ class WindowController:
         for idx, entry in enumerate(confidence[self.selected_idx].entries):
             name = tk.Entry(self.confidence_frame, font=("Arial", 12, "bold"))
             value = tk.Entry(self.confidence_frame, font=("Arial",12, "bold"))
+            self.conf.append((name, value))
             name.grid(row=idx, column=0)
             value.grid(row=idx, column=1)
             name.insert(tk.END, str(entry.name))
-            value.insert(tk.END, str(round(entry.confidence, 4)))
+            value.insert(tk.END, str(round(entry.confidence*100, 2)))
 
     def on_load(self):
         threading.Thread(target=self.client.load_file, daemon=True).start()
 
     def on_detect(self):
+        for name, value in self.conf:
+            name.grid_remove()
+            value.grid_remove()
         threading.Thread(target=self.client.request_detect, daemon=True).start()
 
     def on_describe(self):
@@ -92,3 +97,6 @@ class WindowController:
     def select(self, rectangle: ResizableCanvasShape):
         self.selected_idx = self.boxes.index(rectangle)
         self.client.display_confidence()
+
+    def move_shape(self, x1: int, y1: int, x2: int, y2: int):
+        self.client.move_bbox(x1, y1, x2, y2, self.selected_idx)

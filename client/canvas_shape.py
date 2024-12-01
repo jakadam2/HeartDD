@@ -120,9 +120,12 @@ class ResizableCanvasShape:
 
         dx = event.x - self.start_x
         dy = event.y - self.start_y
+        print(f"X:{event.x}, Y:{event.y}\ndx:{dx}, dy:{dy}")
         self.start_x = event.x
         self.start_y = event.y
         self.move(dx, dy)
+        
+        
 
     def on_resize(self, event):
         """
@@ -157,12 +160,22 @@ class ResizableCanvasShape:
         """
         Move the rectangle by a given delta.
         """
+        print(f"x1:{self.x1}, y1:{self.y1}, x2:{self.x2}, y2:{self.y2}") 
         self.x1 += dx
         self.y1 += dy
         self.x2 += dx
         self.y2 += dy
+            
+        if self.x1 < 0 or self.y1 < 0 or self.x2 > 700 or self.y2 > 700:
+            self.x1 -= dx
+            self.y1 -= dy
+            self.x2 -= dx
+            self.y2 -= dy
+            return
+        
         self.canvas.move(self.rectangle, dx, dy)
         self.canvas.move(self.border, dx, dy)
+        self.controller.move_shape(self.x1,self.y1,self.x2,self.y2)
 
     def _redraw(self):
         """
