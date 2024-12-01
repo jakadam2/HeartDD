@@ -1,3 +1,5 @@
 from .charasteristic_classifier import CharacteristicClassifier
 from .severe_tortuosity_classifier import SevereTortuosityClassifier
 from .bifurcation_classifier import BifurcationClassifier
+from .thrombus_classifier import ThrombusClassifier
+from .heavy_calcification_classifier import HeavyCalcificationClassifier
