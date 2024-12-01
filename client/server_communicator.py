@@ -10,9 +10,10 @@ import numpy as np
 CHUNK_SIZE = 1024
 
 class ServerHandler:
-    def __init__(self):
+    def __init__(self, ip, port):
         # Set up gRPC connection
-        channel = grpc.insecure_channel('localhost:50051')
+        address = f"{ip}:{port}"
+        channel = grpc.insecure_channel(address)
         self.stub = comms_grpc.DetectionAndDescriptionStub(channel)
 
 

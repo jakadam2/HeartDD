@@ -6,7 +6,7 @@ import os
 import re
 
 ID_DESC_WEIGHTS = '1He7ELAxJM-RuKS9m4fOfvrtMmRuF-T4P'
-ID_DETECTION_WEIGHTS = '1R74s94WH-X8VdCLCDlgb0jWxL0FLvb73'
+ID_DETECTION_WEIGHTS = '1Mrgdh6jd4aWwBwd7fjCQmY1qhOKk1Qad'
 ID_BINMASK = '1OFBtTf4SGWRGPSw0MOOyaF584q4iX2jC'
 
 
@@ -42,9 +42,9 @@ def download_gdrive_files():
         gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DESC_WEIGHTS}',
                        output='server/description/weights/best.pth')
 
-    if not os.path.exists('server/detection/checkpoints/best.pt'):
+    if not os.path.exists('server/detection/checkpoints/best_new.pt'):
         gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DETECTION_WEIGHTS}',
-                       output='server/detection/checkpoints/best.pt')
+                       output='server/detection/checkpoints/best_new.pt')
 
     if not os.path.exists('base_images/good_df_newest.csv'):
         gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_BINMASK}',
@@ -58,14 +58,14 @@ def start_services():
 
     # Start the server process
     server_process = subprocess.Popen([sys.executable, server_script])
-    print("Server started.")
+    print("Server starting...")
 
     # Optional delay to allow the server to initialize
-    time.sleep(1)
+    time.sleep(2)
 
     # Start the client process
     client_process = subprocess.Popen([sys.executable, client_script])
-    print("Client started.")
+    print("Client starting...")
 
     # Wait for both processes to complete
     server_process.wait()
