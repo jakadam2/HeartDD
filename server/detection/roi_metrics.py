@@ -7,6 +7,8 @@ import preprocessing.mask_to_pixel as preprocessing
 import pandas as pd
 from skimage.morphology import skeletonize
 import matplotlib.pyplot as plt
+from torchvision.ops import nms
+import time
 
 class LesionDetectorRoi:
 
@@ -52,7 +54,7 @@ class LesionDetectorRoi:
                 boxes.append((x1, y1, x2, y2))
         return boxes
 
-    def detect(self, roi_step, roi_size):
+    def detect(self, roi_step, roi_size, nms_iou_threshold):
         if self.mask is not None:
             skeletonized_mask = skeletonize(self.mask)
             skeleton_coords = np.column_stack(np.where(skeletonized_mask))
@@ -60,32 +62,36 @@ class LesionDetectorRoi:
         model = torch.hub.load('ultralytics/yolov5', 'custom', path=self.model_path)
 
         self.processed_image = self.image.copy()
+        all_boxes = []
 
-        for (y, x) in skeleton_coords[::roi_step]:
+        for y, x in skeleton_coords[::roi_step]:
             x_start, x_end = max(0, x - roi_size[1] // 2), min(self.image.shape[1], x + roi_size[1] // 2)
             y_start, y_end = max(0, y - roi_size[0] // 2), min(self.image.shape[0], y + roi_size[0] // 2)
-
+            
             roi = self.image[y_start:y_end, x_start:x_end]
-            results = model(roi)
-
+            results = model(roi, roi_size[0])
+            
+            # Process detections for the ROI
             for *xyxy, conf, cls in results.xyxy[0]:
                 x1, y1, x2, y2 = map(int, xyxy)
-                self.detected_boxes.append([x1, y1, x2, y2])
 
-    def save_processed_image(self, output_path, ground_truth_boxes, iou_threshold):
-        tp_boxes = []
+                x1 = int(x1 + x_start)
+                y1 = int(y1 + y_start)
+                x2 = int(x2 + x_start)
+                y2 = int(y2 + y_start)
 
-        for detected_box in self.detected_boxes:
-            for gt_box in ground_truth_boxes:
-                iou = self.calculate_iou(detected_box, gt_box)
-                if iou >= iou_threshold:
-                    tp_boxes.append(detected_box)
-                    cv.rectangle(self.processed_image, (detected_box[0], detected_box[1]),
-                                (detected_box[2], detected_box[3]), (255, 0, 0), 2)
+                all_boxes.append([x1, y1, x2, y2, float(conf)])
 
-        cv.imwrite(output_path, cv.cvtColor(self.processed_image, cv.COLOR_BGR2RGB))
-        return len(tp_boxes), len(self.detected_boxes) - len(tp_boxes)
+        if all_boxes:
+            # Convert to tensors for NMS
+            boxes = torch.tensor([box[:4] for box in all_boxes], dtype=torch.float32)
+            scores = torch.tensor([box[4] for box in all_boxes], dtype=torch.float32)
 
+            # Apply NMS
+            keep_indices = nms(boxes, scores, nms_iou_threshold)  # Adjust IOU threshold as needed
+
+            # Keep only the boxes after NMS
+            self.detected_boxes = [all_boxes[i] for i in keep_indices]
 
 if __name__ == '__main__':
     image_dir = './datasets/images/dataset2/images/test'
@@ -94,58 +100,81 @@ if __name__ == '__main__':
     output_dir = './datasets/images/output2'
 
     df = pd.read_csv(mask_path)
-    roi_step = 10
-    roi_size = (90, 90)
     iou_threshold = 0.6
 
     os.makedirs(output_dir, exist_ok=True)
 
-    total_tp, total_fp, total_fn = 0, 0, 0
+    precision_recall_time_results = []
+    roi_steps = range(21, 40, 2)
 
-    for image_file in os.listdir(image_dir):
-        if not image_file.endswith(('.png', '.jpg', '.jpeg')):
-            continue
+    for roi_step in roi_steps:
+        total_tp, total_fp, total_fn = 0, 0, 0
 
-        image_id, frame = os.path.splitext(image_file)[0].rsplit('_', 1)
-        frame = int(frame)
-        image_path = os.path.join(image_dir, image_file)
-        image = Image.open(image_path)
+        start_time = time.time()
 
-        file_name, _ = os.path.splitext(image_file)
-        label_path = os.path.join(label_dir, file_name + '.txt')
-        if not os.path.exists(label_path):
-            print(f"Ground truth not found for {image_file}. Skipping.")
-            continue
+        for image_file in os.listdir(image_dir):
+            if not image_file.endswith(('.png', '.jpg', '.jpeg')):
+                continue
 
-        image_rows = df[df['image_id'] == image_id]
-        if image_rows.empty:
-            print(f"No mask found for image_id: {image_id}. Skipping.")
-            continue
+            image_id, frame = os.path.splitext(image_file)[0].rsplit('_', 1)
+            frame = int(frame)
+            image_path = os.path.join(image_dir, image_file)
+            image = Image.open(image_path)
 
-        exact_frame_row = image_rows[image_rows['frame'] == frame]
-        if not exact_frame_row.empty:
-            bitmask = exact_frame_row['segmentation'].values[0]
-        else:
-            closest_frame_row = image_rows.iloc[(image_rows['frame'] - frame).abs().argsort()[:1]]
-            bitmask = closest_frame_row['segmentation'].values[0]
+            file_name, _ = os.path.splitext(image_file)
+            label_path = os.path.join(label_dir, file_name + '.txt')
+            if not os.path.exists(label_path):
+                print(f"Ground truth not found for {image_file}. Skipping.")
+                continue
 
-        mask = preprocessing.MaskUnpacker._unpack_mask(bitmask)
+            image_rows = df[df['image_id'] == image_id]
+            if image_rows.empty:
+                print(f"No mask found for image_id: {image_id}. Skipping.")
+                continue
 
-        detector = LesionDetectorRoi(image, mask)
-        detector.detect(roi_step, roi_size)
+            exact_frame_row = image_rows[image_rows['frame'] == frame]
+            if not exact_frame_row.empty:
+                bitmask = exact_frame_row['segmentation'].values[0]
+            else:
+                closest_frame_row = image_rows.iloc[(image_rows['frame'] - frame).abs().argsort()[:1]]
+                bitmask = closest_frame_row['segmentation'].values[0]
 
-        ground_truth_boxes = detector.load_ground_truth(label_path)
+            mask = preprocessing.MaskUnpacker._unpack_mask(bitmask)
 
-        output_path = os.path.join(output_dir, f"processed_{image_file}")
-        tp, fp = detector.save_processed_image(output_path, ground_truth_boxes, iou_threshold)
-        fn = len(ground_truth_boxes) - tp
+            detector = LesionDetectorRoi(image, mask)
+            detector.detect(roi_step=roi_step, roi_size=(130,130), nms_iou_threshold=0.1 ) # difhaoidfuhaifhsdufaosiufhdsuikoahfiou
 
-        total_tp += tp
-        total_fp += fp
-        total_fn += fn
+            ground_truth_boxes = detector.load_ground_truth(label_path)
 
-    precision = total_tp / (total_tp + total_fp) if total_tp + total_fp > 0 else 0
-    recall = total_tp / (total_tp + total_fn) if total_tp + total_fn > 0 else 0
+            # Match detected boxes with ground truth
+            matched_gt_indices = set()
+            tp = 0
+            for detected_box in detector.detected_boxes:
+                for gt_idx, gt_box in enumerate(ground_truth_boxes):
+                    if gt_idx not in matched_gt_indices:
+                        iou = detector.calculate_iou(detected_box, gt_box)
+                        if iou >= iou_threshold:
+                            tp += 1
+                            matched_gt_indices.add(gt_idx)
+                            break
 
-    print(f"Precision: {precision:.4f}")
-    print(f"Recall: {recall:.4f}")
+            fp = len(detector.detected_boxes) - tp
+            fn = len(ground_truth_boxes) - len(matched_gt_indices) 
+
+            total_tp += tp
+            total_fp += fp
+            total_fn += fn
+
+        end_time = time.time()
+
+        # Calculate precision and recall
+        precision = total_tp / (total_tp + total_fp) if total_tp + total_fp > 0 else 0
+        recall = total_tp / (total_tp + total_fn) if total_tp + total_fn > 0 else 0
+        execution_time = end_time - start_time
+
+        precision_recall_time_results.append((roi_step, precision, recall, execution_time))
+        print(f"ROI Step: {roi_step} | Precision: {precision:.4f}, Recall: {recall:.4f}, Time: {execution_time:.2f} seconds")
+
+    # Optional: Save results to a CSV
+    results_df = pd.DataFrame(precision_recall_time_results, columns=['ROI Step', 'Precision', 'Recall', 'Time'])
+    results_df.to_csv(os.path.join(output_dir, 'precision_recall_time_results2.csv'), index=False)
