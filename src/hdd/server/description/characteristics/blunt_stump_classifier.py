@@ -7,8 +7,8 @@ from PIL import Image
 
 from typing import Union
 
-
 from hdd.server.description.characteristics import CharacteristicClassifier
+
 
 class BluntStumpClassifier(CharacteristicClassifier):
 

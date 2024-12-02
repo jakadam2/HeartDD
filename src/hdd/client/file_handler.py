@@ -2,16 +2,17 @@ import os
 import sys
 from tkinter.filedialog import askopenfilename
 
-root_dir = os.path.join(os.path.dirname(__file__), "..")
-sys.path.append(os.path.abspath(root_dir))
-MASK_FILE = os.path.join(root_dir, 'base_images', 'good_df_newest.csv')
-
-import hdd.preprocessing.mask_to_pixel as preprocessing
 import pydicom as dicom
 from PIL import Image
 import pandas as pd
 import numpy as np
-from error_window import ErrorWindow
+
+import hdd.preprocessing.mask_to_pixel as preprocessing
+from hdd.client.error_window import ErrorWindow
+
+root_dir = os.path.join(os.path.dirname(__file__), "..")
+sys.path.append(os.path.abspath(root_dir))
+MASK_FILE = os.path.join(root_dir, 'base_images', 'good_df_newest.csv')
 
 
 class FileHandler:

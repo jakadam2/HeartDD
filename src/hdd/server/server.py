@@ -5,13 +5,14 @@
 import sys
 import grpc
 from concurrent import futures
-import hdd.server.detection_pb2_grpc as comms_grpc
-import hdd.server.detection_pb2 as comms
 from PIL import Image
 import io
 import numpy as np
 import random
+
 import hdd.server.endpoints as ep
+import hdd.server.detection_pb2_grpc as comms_grpc
+import hdd.server.detection_pb2 as comms
 
 
 class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer):

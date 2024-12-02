@@ -1,4 +1,3 @@
-from canvas_shape import ResizableCanvasShape
 import threading
 from PIL import ImageTk
 
@@ -7,6 +6,8 @@ try:
 except ImportError:
     import Tkinter as tk
 
+from hdd.client.canvas_shape import ResizableCanvasShape
+
 WIDTH, HEIGHT = 700, 700
 
 
@@ -14,7 +15,7 @@ class WindowController:
     def __init__(self, client, window):
         self.window = window
         self.client = client  # Reference to Client class to call application methods
-        self.selected_idx = 0;
+        self.selected_idx = 0
         self.boxes = []
         self.conf = [] 
 

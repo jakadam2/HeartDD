@@ -3,9 +3,10 @@ import numpy.typing as npt
 from typing import Union
 
 import grpc
+import numpy as np
+
 import hdd.client.detection_pb2_grpc as comms_grpc
 import hdd.client.detection_pb2 as comms
-import numpy as np
 
 CHUNK_SIZE = 1024
 

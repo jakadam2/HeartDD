@@ -1,14 +1,12 @@
 # THIS IS THE FILE USED TO IMPLEMENT ENDPOINTS TO INTERACT WITH MODELS
 # REPLACE THESE FUNCTIONS WITH WHATEVER YOU NEED
-from hdd.server.description.lesion_desriber import LesionDescriber
-from hdd.server.detection.detect import LesionDetector
-
 from PIL import Image
 import numpy.typing as npt
 from typing import Union
 import random
 
-from torchvision import transforms
+from hdd.server.description.lesion_desriber import LesionDescriber
+from hdd.server.detection.detect import LesionDetector
 
 
 def detect_bounding_boxes(image: Image, mask: npt.ArrayLike) -> list[dict[str:float]]:
