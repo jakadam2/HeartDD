@@ -11,6 +11,7 @@ Otherwise use
 python client/client.py    - to start the client
 python server/server.py    - to start the server
 ```
-To make testing easier you can change the value at the top of the file LOAD to False 
+
+To make testing easier you can change the "testing" values in client.test and server.test in config.ini file to "yes"
 
 line at the end of Client contructor in Client.py. This will automatically load a test file.
