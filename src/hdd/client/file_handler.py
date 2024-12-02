@@ -1,5 +1,6 @@
 import os
 import sys
+from importlib.resources import files
 from tkinter.filedialog import askopenfilename
 
 import pydicom as dicom
@@ -12,7 +13,7 @@ from hdd.client.error_window import ErrorWindow
 
 root_dir = os.path.join(os.path.dirname(__file__), "..")
 sys.path.append(os.path.abspath(root_dir))
-MASK_FILE = os.path.join(root_dir, 'base_images', 'good_df_newest.csv')
+MASK_FILE = files('hdd.assets') / 'masks.csv'
 
 
 class FileHandler:

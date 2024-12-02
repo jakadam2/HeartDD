@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import cv2 as cv
 from PIL import Image
-
+from importlib.resources import files
 import platform
 import pathlib
 
@@ -15,7 +15,7 @@ class LesionDetector:
             pathlib.PosixPath = pathlib.WindowsPath
         else:
             pathlib.WindowsPath = pathlib.PosixPath
-        self.model_path = pathlib.Path('./server/detection/checkpoints/best_new.pt')
+        self.model_path = files('hdd.assets.weights') / 'weights_detection.pt'
         # Pillow Image transform to numpy
         if isinstance(image, Image.Image):
             image = np.array(image)

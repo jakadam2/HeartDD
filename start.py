@@ -1,13 +1,12 @@
 import subprocess
 import sys
 import importlib.metadata
+from importlib.resources import files
 import time
 import os
 import re
 
-ID_DESC_WEIGHTS = '1He7ELAxJM-RuKS9m4fOfvrtMmRuF-T4P'
-ID_DETECTION_WEIGHTS = '1Mrgdh6jd4aWwBwd7fjCQmY1qhOKk1Qad'
-ID_BINMASK = '1OFBtTf4SGWRGPSw0MOOyaF584q4iX2jC'
+
 
 
 def download_dependencies():
@@ -36,25 +35,13 @@ def download_dependencies():
         sys.exit(1)
 
 
-def download_gdrive_files():
-    import gdown
-    if not os.path.exists('server/description/weights/best.pth'):
-        gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DESC_WEIGHTS}',
-                       output='server/description/weights/best.pth')
 
-    if not os.path.exists('server/detection/checkpoints/best_new.pt'):
-        gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DETECTION_WEIGHTS}',
-                       output='server/detection/checkpoints/best_new.pt')
-
-    if not os.path.exists('base_images/good_df_newest.csv'):
-        gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_BINMASK}',
-                       output='base_images/good_df_newest.csv')
 
 
 def start_services():
     # Paths to the client and server scripts
-    client_script = 'client/client.py'
-    server_script = 'server/server.py'
+    client_script = files('hdd.client') / 'client.py'
+    server_script = files('hdd.server') / 'server.py'
 
     # Start the server process
     server_process = subprocess.Popen([sys.executable, server_script])
@@ -78,5 +65,4 @@ def start_services():
 
 if __name__ == "__main__":
     download_dependencies()
-    download_gdrive_files()
     start_services()
