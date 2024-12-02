@@ -7,7 +7,21 @@ import os
 import re
 
 
+ID_DESC_WEIGHTS = '1He7ELAxJM-RuKS9m4fOfvrtMmRuF-T4P'
+ID_DETECTION_WEIGHTS = '1Mrgdh6jd4aWwBwd7fjCQmY1qhOKk1Qad'
+ID_BINMASK = '1OFBtTf4SGWRGPSw0MOOyaF584q4iX2jC'
 
+
+def download_gdrive_files():
+    import gdown
+
+    if not os.path.exists(files('hdd.assets.weights') / 'weights_detection.pt'):
+        gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DETECTION_WEIGHTS}',
+                       output = str(files('hdd.assets.weights') / 'weights_detection.pt'))
+
+    if not os.path.exists(files('hdd.assets') / 'masks.csv'):
+        gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_BINMASK}',
+                       output = str(files('hdd.assets') / 'masks.csv'))
 
 def download_dependencies():
     """ This script downloads all the dependencies in requirements.txt. Therefore it needs to be here before any non
@@ -33,10 +47,6 @@ def download_dependencies():
     except Exception as e:
         print(f"An error occurred while checking/installing dependencies: {e}")
         sys.exit(1)
-
-
-
-
 
 def start_services():
     # Paths to the client and server scripts
@@ -65,4 +75,5 @@ def start_services():
 
 if __name__ == "__main__":
     download_dependencies()
+    download_gdrive_files()
     start_services()

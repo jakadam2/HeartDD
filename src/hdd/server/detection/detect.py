@@ -15,7 +15,7 @@ class LesionDetector:
             pathlib.PosixPath = pathlib.WindowsPath
         else:
             pathlib.WindowsPath = pathlib.PosixPath
-        self.model_path = files('hdd.assets.weights') / 'weights_detection.pt'
+        self.model_path = str(files('hdd.assets.weights') / 'weights_detection.pt')
         # Pillow Image transform to numpy
         if isinstance(image, Image.Image):
             image = np.array(image)
