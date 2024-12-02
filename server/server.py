@@ -12,7 +12,10 @@ import io
 import numpy as np
 import random
 import endpoints as ep
+from config import parser
 
+SERVER_IP = parser.get("DEFAULT", "server_ip")
+SERVER_PORT = parser.get("DEFAULT", "server_port")
 
 class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer):
 
@@ -69,6 +72,7 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
 
             # find bounding boxes, this is a placeholder
             bounding_boxes = ep.detect_bounding_boxes(image, bit_mask)
+            print(f"[SERVER] {bounding_boxes}")
             for box in bounding_boxes:
                 coordinates = comms.Coordinates(x1=box['x1'], y1=box['y1'], x2=box['x2'], y2=box['y2'])
                 response.coordinates_list.append(coordinates)

@@ -1,18 +1,21 @@
 from PIL import Image
 import numpy.typing as npt
 from typing import Union
-
 import grpc
 import detection_pb2_grpc as comms_grpc
 import detection_pb2 as comms
 import numpy as np
+from config import parser
 
-CHUNK_SIZE = 1024
+SERVER_IP = parser.get("DEFAULT", "server_ip")
+SERVER_PORT = parser.get("DEFAULT", "server_port")
+CHUNK_SIZE = parser.getint("DEFAULT", "request_chunk_size")
+HEALTH_CHECK_LIMIT = parser.getint("DEFAULT", "health_check_limit")
 
 class ServerHandler:
-    def __init__(self, ip, port):
+    def __init__(self):
         # Set up gRPC connection
-        address = f"{ip}:{port}"
+        address = f"{SERVER_IP}:{SERVER_PORT}"
         channel = grpc.insecure_channel(address)
         self.stub = comms_grpc.DetectionAndDescriptionStub(channel)
 

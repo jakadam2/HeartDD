@@ -1,18 +1,16 @@
 import os
 import sys
 from tkinter.filedialog import askopenfilename
-
-root_dir = os.path.join(os.path.dirname(__file__), "..")
-sys.path.append(os.path.abspath(root_dir))
-MASK_FILE = os.path.join(root_dir, 'base_images', 'good_df_newest.csv')
-
-import preprocessing.mask_to_pixel as preprocessing
 import pydicom as dicom
 from PIL import Image
 import pandas as pd
 import numpy as np
 from error_window import ErrorWindow
+from config import parser, root_dir
 
+sys.path.append(os.path.abspath(root_dir))
+MASK_FILE = os.path.join(root_dir, 
+                        parser.get("DEFAULT", "bitmask_file"))
 
 class FileHandler:
     def __init__(self):
@@ -28,7 +26,7 @@ class FileHandler:
         if self.extension is None:
             ErrorWindow.show("Incorrect format", "Incorrect file format, all files should have a .png, .jpg or .dcm extension")
         elif self.filename is None:
-            raise ValueError("No file has been loaded")
+            ErrowWindow.show(message = "No file has been loaded")
 
     def load_file(self) -> Image:
 
@@ -52,11 +50,11 @@ class FileHandler:
                 image = Image.open(self.filename + self.extension)
             case _:
                 ErrorWindow.show("Incorrect format", "Incorrect file format, all files should have a .png, .jpg or .dcm extension")
-                raise ValueError("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
 
         return image
 
     def load_bitmask(self):
+        import preprocessing.mask_to_pixel as preprocessing
         basename = os.path.basename(self.filename)
         # Parse the image_id and frame from the filename
         image_id, frame = basename.rsplit("_", 1)

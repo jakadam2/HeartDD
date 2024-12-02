@@ -1,5 +1,3 @@
-# THIS IS THE FILE USED TO IMPLEMENT ENDPOINTS TO INTERACT WITH MODELS
-# REPLACE THESE FUNCTIONS WITH WHATEVER YOU NEED
 from description.lesion_desriber import LesionDescriber
 from detection.detect import LesionDetector
 
@@ -7,11 +5,15 @@ from PIL import Image
 import numpy.typing as npt
 from typing import Union
 import random
-
 from torchvision import transforms
+from config import parser
+TESTING = parser.getboolean("server.test", "testing")
 
 
 def detect_bounding_boxes(image: Image, mask: npt.ArrayLike) -> list[dict[str:float]]:
+    if TESTING:
+        return test_bboxes()
+
     detector = LesionDetector(image, mask)
     coordinates = detector.detect()
 
