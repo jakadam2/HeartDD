@@ -5,8 +5,8 @@ from PIL import Image
 import numpy.typing as npt
 from typing import Union
 import random
-from torchvision import transforms
 from config import parser
+
 TESTING = parser.getboolean("server.test", "testing")
 
 

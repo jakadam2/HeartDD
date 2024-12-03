@@ -1,5 +1,3 @@
-import os
-import sys
 from enum import Enum
 from PIL import ImageTk
 import queue
@@ -26,24 +24,24 @@ class Flag(Enum):
     NOTHING = 5
 
 class Client:
-    def __init__(self, window = None):
+    def __init__(self, window: tk.Tk):
         self.image = None
         self.image_tk = None
         self.bitmask = None
         self.bounding_boxes = None
         self.scaled_bboxes = None
         self.confidence_list = None
-
+        self.filename = None
+        self.extension = None
         # Initialize file handler and server communicator
         sch.connect()
 
         self.queue = None
-        if window: 
-            self.queue = queue.Queue()
-            self.scaling_ratio = 1
-            self.reverse_scaling_ratio = 1
-            # Initialize WindowController for window-related tasks
-            self.window_controller = wc.WindowController(self, window)
+        self.queue = queue.Queue()
+        self.scaling_ratio = 1
+        self.reverse_scaling_ratio = 1
+        # Initialize WindowController for window-related tasks
+        self.window_controller = wc.WindowController(self, window)
         if TESTING:
             # Load file and start polling for UI updates
             self.load_file(TEST_FILE)
@@ -51,9 +49,6 @@ class Client:
         self.poll_queue()
 
     def poll_queue(self):
-        if not self.queue:
-            return
-        """Poll queue for updates and perform actions based on flags."""
         try:
             while True:
                 flag = self.queue.get_nowait()
@@ -85,31 +80,29 @@ class Client:
                 bbox[2] * self.scaling_ratio,
                 bbox[3] * self.scaling_ratio
             ])
-        print(f"Boxes: {self.bounding_boxes}\n Scaled boxes: {self.scaled_bboxes}")
         return self.scaled_bboxes
 
     def load_file(self, name: str = None):
         try:
-            fh.get_file_name(name)
-            self.image = fh.load_file()
+            self.filename, self.extension = fh.get_file_name(name)
+            self.image = fh.load_file(self.filename, self.extension)
             self.image_tk = ImageTk.PhotoImage(self.image.resize((CANVAS_SIZE, CANVAS_SIZE)))
-            self.bitmask = fh.load_bitmask()
-        except ValueError as ex:
+            self.bitmask = fh.load_bitmask(self.filename)
+        except ValueError:
             ErrorWindow.show(message="An error occured while loading a file")
         except FileNotFoundError:
             ErrorWindow.show("File not found", "File not found")
-        except TypeError:
-            ErrorWindow.show("Incorrect file format", "Incorrect file format, all files should have a .png, .jpg or .dcm extension")
-        if self.queue:
-            self.queue.put(Flag.LOAD)
+        except TypeError as ex:
+            ErrorWindow.show("Incorrect file format", ex.args)
+        self.queue.put(Flag.LOAD)
 
     def request_detect(self):
+        self.confidence_list = None
         if self.image is None:
             ErrorWindow.show("No image", "Please load an image you want to use")
             return
         self.bounding_boxes = sch.request_detection(self.image, self.bitmask)
-        if self.queue:
-            self.queue.put(Flag.DETECT)
+        self.queue.put(Flag.DETECT)
 
     def request_describe(self):
         if self.image is None:
@@ -119,14 +112,17 @@ class Client:
             ErrorWindow.show("No boxes", "Please use \"Detect Lesions\" option before")
             return
         self.confidence_list = sch.request_description(self.image, self.bitmask, self.bounding_boxes)
-        for confidence in self.confidence_list:
-            print(f"{confidence}")
 
-        if self.queue:
-            self.queue.put(Flag.DESCRIBE)
+        self.queue.put(Flag.DESCRIBE)
     
     def put_confidence(self) -> None:
         self.window_controller.display_confidence(self.confidence_list)
+
+    def delete_bbox(self, idx: int):
+        self.scaled_bboxes.pop(idx)
+        self.bounding_boxes.pop(idx)
+        if self.confidence_list:
+            self.confidence_list.pop(idx)
 
     def change_bbox(self, x1: int, y1: int, x2: int, y2: int, index: int):
         #print(f"Scaling ratio {self.scaling_ratio}, Reverse scaling {reverse_scaling_ratio}")
@@ -135,24 +131,6 @@ class Client:
         self.bounding_boxes[index][1] = y1 * self.reverse_scaling_ratio
         self.bounding_boxes[index][2] = x2 * self.reverse_scaling_ratio
         self.bounding_boxes[index][3] = y2 * self.reverse_scaling_ratio
-        print(f"After scaling:{self.bounding_boxes[index]}")
-    
-    def bulk_operation(self, name=None):
-        fh.load_directory()
 
 
-def start():
-    if len(sys.argv) > 1:
-        flag = sys.argv[1]
-        if flag != "bulk":
-            return
-        client = Client()
-        client.bulk_operation()
-    else:
-        root = tk.Tk()
-        Client(root)
-        root.mainloop()
 
-
-if __name__ == "__main__":
-    start()

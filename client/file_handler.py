@@ -1,41 +1,37 @@
-import os
 import sys
 from tkinter.filedialog import askopenfilename, askdirectory
 import pydicom as dicom
 from PIL import Image
 import pandas as pd
 import numpy as np
-from error_window import ErrorWindow
-from config import parser, root_dir
+import cv2
+from config import *
 
 sys.path.append(os.path.abspath(root_dir))
-MASK_FILE = os.path.join(root_dir, 
-                        parser.get("DEFAULT", "bitmask_file"))
+MASK_FILE = os.path.join(root_dir,
+                         parser.get("DEFAULT", "bitmask_file"))
+ALLOWED_EXTENSION = {".png", ".jpg", ".dcm"}
 
-filename = None
-extension = None
-
-def get_file_name(name=None):
-    global extension
-    global filename
+def get_file_name(name: str | None) -> (str, str):
     if name is None:
         name = askopenfilename()
 
     filename, extension = os.path.splitext(name)
     # Validate file extension
-    if extension is None:
-        ErrorWindow.show("Incorrect format", "Incorrect file format, all files should have a .png, .jpg or .dcm extension")
+    if extension is None or extension not in ALLOWED_EXTENSION:
+        raise NameError("Incorrect file format, all files should have a .png, .jpg or .dcm extension")
     elif filename is None:
-        ErrowWindow.show(message = "No file has been loaded")
+        raise TypeError("No file has been loaded")
+    return filename, extension
 
-def load_file() -> Image:
+
+def load_file(filename: str, extension: str) -> Image:
     match extension:
         case ".dcm":
             # Load DICOM file and convert to PIL Image
             file = dicom.dcmread(filename + extension)
             pixel_array = file.pixel_array  # Get pixel array from the DICOM file
             if len(pixel_array) > 1:
-                print("More than 1 picture in file, taking the first one")
                 pixel_array = pixel_array[0]
 
             # Normalize the pixel data and convert it to uint8 for display (if needed)
@@ -48,16 +44,17 @@ def load_file() -> Image:
             # Load PNG/JPG file directly as PIL Image
             image = Image.open(filename + extension)
         case _:
-            raise TypeError()
+            raise RuntimeError()
     return image
 
-def load_bitmask():
+
+def load_bitmask(filename: str):
     import preprocessing.mask_to_pixel as preprocessing
     basename = os.path.basename(filename)
     # Parse the image_id and frame from the filename
     image_id, frame = basename.rsplit("_", 1)
     if not image_id or not frame:
-        raise ValueError("Filename format is incorrect. Expected {image_id}_{frame}.png")
+        raise TypeError("Filename format is incorrect. Expected {image_id}_{frame}.png")
 
     frame = int(frame)
     # Load the CSV file
@@ -76,13 +73,38 @@ def load_bitmask():
         closest_frame_row = image_rows.iloc[(image_rows['frame'] - frame).abs().argsort()[:1]]
         closest_frame = closest_frame_row['frame'].values[0]
         bitmask = closest_frame_row['segmentation'].values[0]
-        print(f"[CLIENT] Exact frame not found. Using closest frame {closest_frame} for image_id {image_id}.")
 
     mask = preprocessing.MaskUnpacker._unpack_mask(bitmask)
     return mask
-    
-def load_directory(name = None):
-    if name is None:
-        name = askdirectory()
-    filenames = next(os.walk(name), (None, None, []))[2]
-    print(len(filenames))
+
+
+def load_directory(dir: str | None = None):
+    if dir is None:
+        dir = askdirectory()
+    # List all files in the directory
+    filenames = next(os.walk(dir), (None, None, []))[2]
+
+    # Filter for files with .png, .jpg, or .dcm extensions (case insensitive)
+    filtered_filenames = [f for f in filenames if os.path.splitext(f)[1].lower() in ALLOWED_EXTENSION]
+    full_names = [dir + "/" + f for f in filtered_filenames]
+    return full_names, dir
+
+def save_image(filename: str, directory: str, image: Image, bounding_boxes: list[list[float]], confidence_list: list[dict[str,float]]):
+    # Create a copy of the image for drawing
+    if isinstance(image, np.ndarray):  # If the image is already a NumPy array
+        output_image = image.copy()
+    else:
+        output_image = np.array(image)  # Convert PIL Image to NumPy array if needed
+    # Draw the bounding boxes
+    for bbox, confidence in zip(bounding_boxes, confidence_list):
+        x1, y1, x2, y2 = map(int, bbox)
+        cv2.rectangle(output_image, (x1, y1), (x2, y2), (255, 0, 0), 1)
+        label, max_prob = max(confidence.items(), key=lambda item: item[1])
+        label = f"{label}"  # Format label
+        cv2.putText(output_image, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 0, 0), 1)
+    # Define the output path
+    output_dir = os.path.join(directory, "results")
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, f"{os.path.basename(filename)}_result.png")
+    cv2.imwrite(output_path, output_image)
+

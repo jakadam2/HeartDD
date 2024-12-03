@@ -4,15 +4,23 @@ import importlib.metadata
 import time
 import os
 import re
+import configparser
 
-ID_DESC_WEIGHTS = '1He7ELAxJM-RuKS9m4fOfvrtMmRuF-T4P'
-ID_DETECTION_WEIGHTS = '1Mrgdh6jd4aWwBwd7fjCQmY1qhOKk1Qad'
-ID_BINMASK = '1OFBtTf4SGWRGPSw0MOOyaF584q4iX2jC'
+parser = configparser.ConfigParser()
+config = parser.read("config.ini")
 
+ID_DESC_WEIGHTS = parser.get("google.downloads","ID_DESC_WEIGHTS")
+DESC_WEIGHTS_DIR = parser.get("google.downloads","DESC_WEIGHTS_DIR")
+
+ID_DETECTION_WEIGHTS = parser.get("google.downloads","ID_DETECTION_WEIGHTS")
+DETECTION_WEIGHTS_DIR = parser.get("google.downloads","DETECTION_WEIGHTS_DIR")
+
+ID_BINMASK = parser.get("google.downloads","ID_BINMASK")
+BINMASK_DIR = parser.get("google.downloads","BINMASK_DIR")
+
+GOOGLE_DOWNLOAD_LINK = "https://drive.google.com/uc?/export=download&id="
 
 def download_dependencies():
-    """ This script downloads all the dependencies in requirements.txt. Therefore it needs to be here before any non
-    standard imports"""
     try:  # Read requirements from the file
         with open('requirements.txt') as f:
             required_packages = f.read().splitlines()
@@ -38,45 +46,57 @@ def download_dependencies():
 
 def download_gdrive_files():
     import gdown
-    if not os.path.exists('server/description/weights/best.pth'):
+    if not os.path.exists(DESC_WEIGHTS_DIR):
         gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DESC_WEIGHTS}',
-                       output='server/description/weights/best.pth')
+                       output=DESC_WEIGHTS_DIR)
 
-    if not os.path.exists('server/detection/checkpoints/best_new.pt'):
+    if not os.path.exists(DETECTION_WEIGHTS_DIR):
         gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_DETECTION_WEIGHTS}',
-                       output='server/detection/checkpoints/best_new.pt')
+                       output=DETECTION_WEIGHTS_DIR)
 
-    if not os.path.exists('base_images/good_df_newest.csv'):
+    if not os.path.exists(BINMASK_DIR):
         gdown.download(f'https://drive.google.com/uc?/export=download&id={ID_BINMASK}',
-                       output='base_images/good_df_newest.csv')
+                       output=BINMASK_DIR)
 
-
-def start_services():
+def start_services(mode=None):
     # Paths to the client and server scripts
-    client_script = 'client/client.py'
+    client_script = 'client/start_client.py'
     server_script = 'server/server.py'
 
-    # Start the server process
-    server_process = subprocess.Popen([sys.executable, server_script])
-    print("Server starting...")
+    try:
+        # Start the server process
+        server_process = subprocess.Popen([sys.executable, server_script])
+        print("Server starting...")
+        #Server needs a bit of time to start, that's why we sleep
+        time.sleep(2)
 
-    # Optional delay to allow the server to initialize
-    time.sleep(2)
+        #Client can be run in two modes, normal mode or bulk mode
+        client_command = [sys.executable, client_script]
+        if mode == "bulk":
+            client_command.append("bulk")  # Add the bulk argument if provided
 
-    # Start the client process
-    client_process = subprocess.Popen([sys.executable, client_script])
-    print("Client starting...")
+        client_process = subprocess.Popen(client_command)
+        print("Client starting...")
 
-    # Wait for both processes to complete
-    server_process.wait()
-    client_process.wait()
-    command = input("Type exit to exit the app")
-    if command == "exit":
-        print("exit was typed")
-        # This doesn't work, I'm not sure why but it's not super important just Ctrl + C to kill the process
+        while True:
+            # Check if the client process has terminated
+            if client_process.poll() is not None:
+                print("Client process has exited.")
+                break
+            time.sleep(1)  # Wait a bit before checking again
+
+    finally:
+        # Shut down the server process
+        print("Shutting down the server...")
+        server_process.terminate()
+        server_process.wait()
+        print("Server shut down.")
 
 
 if __name__ == "__main__":
     download_dependencies()
     download_gdrive_files()
-    start_services()
+    if len(sys.argv) > 1:
+        start_services(sys.argv[1])
+    else:
+        start_services()

@@ -10,7 +10,6 @@ import detection_pb2 as comms
 from PIL import Image
 import io
 import numpy as np
-import random
 import endpoints as ep
 from config import parser
 
@@ -111,7 +110,7 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
                 coordinates_list=[])
 
     def GetDescription(self, request_iterator, context):
-        print("[SERVER] Description request inboud")
+        print("[SERVER] Description request inbound")
         try:
             image, bit_mask, width, height, coordinates = self.unpack_request(request_iterator, context,
                                                                               mode="description")

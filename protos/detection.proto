@@ -3,6 +3,7 @@ syntax = "proto3";
 service DetectionAndDescription{
     rpc GetBoundingBoxes(stream DetectionRequest) returns (DetectionResponse);
     rpc GetDescription(stream DescriptionRequest) returns (DescriptionResponse);
+    rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
 }
 
 message DetectionRequest{
@@ -53,6 +54,14 @@ message ConfidenceEntry {
 message ResponseStatus {
     Status success = 1;
     optional string err_message = 2;
+}
+
+message HealthCheckResponse{
+    Status status = 1;
+}
+
+message HealthCheckRequest{
+    string service = 1;
 }
 
 enum Status {
