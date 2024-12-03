@@ -90,7 +90,7 @@ class WindowController:
         self.conf.clear()
         for idx, entry in enumerate(confidence[self.selected_idx].entries):
             name = tk.Entry(self.confidence_frame, width = TABLE_WIDTH, font=(FONT, FONT_SIZE, STYLING))
-            value = tk.Entry(self.confidence_frame, font=(FONT, FONT_SIZE, STYLING))
+            value = tk.Entry(self.confidence_frame, width = 10, font=(FONT, FONT_SIZE, STYLING))
             self.conf.append((name, value))
             name.grid(row=idx, column=0)
             value.grid(row=idx, column=1)
@@ -120,7 +120,7 @@ class WindowController:
 
     def select(self, rectangle: ResizableCanvasShape):
         self.selected_idx = self.boxes.index(rectangle)
-        self.client.display_confidence()
+        self.client.put_confidence()
 
     def change_shape(self, x1: int, y1: int, x2: int, y2: int):
         self.client.change_bbox(x1, y1, x2, y2, self.selected_idx)

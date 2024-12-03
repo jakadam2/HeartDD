@@ -152,12 +152,12 @@ class DetectionAndDescriptionServicer(comms_grpc.DetectionAndDescriptionServicer
                 coordinates_list=[])
 
 
-def serve(ip = "localhost", port="50051"):
+def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     comms_grpc.add_DetectionAndDescriptionServicer_to_server(DetectionAndDescriptionServicer(), server)
-    address = f"{ip}:{port}"
+    address = f"{SERVER_IP}:{SERVER_PORT}"
     server.add_insecure_port(address)
-    print(f"[SERVER] Server is starting {ip}:{port}...")
+    print(f"[SERVER] Server is starting {SERVER_IP}:{SERVER_PORT}...")
     server.start()
     server.wait_for_termination()
 
