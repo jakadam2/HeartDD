@@ -94,8 +94,18 @@ class Client:
             ErrorWindow.show("File not found", "File not found")
         except TypeError as ex:
             ErrorWindow.show("Incorrect file format", ex.args)
+        except NameError:
+            return
         self.queue.put(Flag.LOAD)
 
+    def save_file(self):
+        try:
+            fh.save_image(None, None,
+                          self.image,
+                          self.bounding_boxes,
+                          self.confidence_list)
+        except Exception as ex:
+            print(f"Something went wrong with {os.path.basename(self.filename)}, {ex.args}")
     def request_detect(self):
         self.confidence_list = None
         if self.image is None:

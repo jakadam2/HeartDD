@@ -48,6 +48,9 @@ class WindowController:
         self.button_frame = tk.Frame(self.left_frame, width=400, height=250, bg=BG_COLOR)
         self.button_frame.grid(row=1, column=0)
 
+        self.save_frame = tk.Frame(self.left_frame, width=400, height=100, bg=BG_COLOR)
+        self.button_frame.grid(row=2, column=0)
+
         # Initialize buttons and connect to client methods
         self.load_button = tk.Button(self.button_frame, text=LOAD_BUTTON, command=self.on_load)
         self.load_button.grid(row=1, column=0, padx=5, pady=5)
@@ -57,6 +60,9 @@ class WindowController:
 
         self.describe_button = tk.Button(self.button_frame, text=DESCRIBE_BUTTON, command=self.on_describe)
         self.describe_button.grid(row=1, column=2, padx=5, pady=5)
+
+        self.save_button = tk.Button(self.button_frame, text="Save File", command=self.on_save)
+        self.save_button.grid(row=1, column=3,padx=5, pady=5)
 
         self.window.bind("<Delete>", self.on_delete)
 
@@ -110,7 +116,7 @@ class WindowController:
     def on_describe(self):
         threading.Thread(target=self.client.request_describe, daemon=True).start()
 
-    def on_delete(self, event):
+    def on_delete(self):
         self.boxes[self.selected_idx].clear()
         self.boxes.pop(self.selected_idx)
         for name, value in self.conf:
@@ -119,6 +125,9 @@ class WindowController:
         self.conf.clear()
         self.client.delete_bbox(self.selected_idx)
         self.selected_idx = 0
+
+    def on_save(self):
+        self.client.save_file()
 
     def select(self, rectangle: ResizableCanvasShape):
         self.selected_idx = self.boxes.index(rectangle)

@@ -1,5 +1,5 @@
 import sys
-from tkinter.filedialog import askopenfilename, askdirectory
+from tkinter.filedialog import askopenfilename, askdirectory, asksaveasfile
 import pydicom as dicom
 from PIL import Image
 import pandas as pd
@@ -90,6 +90,12 @@ def load_directory(dir: str | None = None):
     return full_names, dir
 
 def save_image(filename: str, directory: str, image: Image, bounding_boxes: list[list[float]], confidence_list: list[dict[str,float]]):
+    if filename is None:
+        dest = asksaveasfile(defaultextension=".png").name
+    else:
+        output_dir = os.path.join(directory, "results")
+        os.makedirs(output_dir, exist_ok=True)
+        dest = os.path.join(output_dir, f"{os.path.basename(filename)}_result.png")
     # Create a copy of the image for drawing
     if isinstance(image, np.ndarray):  # If the image is already a NumPy array
         output_image = image.copy()
@@ -103,8 +109,6 @@ def save_image(filename: str, directory: str, image: Image, bounding_boxes: list
         label = f"{label}"  # Format label
         cv2.putText(output_image, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (255, 0, 0), 1)
     # Define the output path
-    output_dir = os.path.join(directory, "results")
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, f"{os.path.basename(filename)}_result.png")
-    cv2.imwrite(output_path, output_image)
+
+    cv2.imwrite(dest, output_image)
 
